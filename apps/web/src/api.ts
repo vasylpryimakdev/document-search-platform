@@ -72,6 +72,17 @@ export async function searchDocuments(userEmail: string, query: string) {
   return response.json() as Promise<SearchDocumentsResponse>
 }
 
+export async function deleteDocument(userEmail: string, documentId: string) {
+  const searchParams = new URLSearchParams({ userEmail })
+  const response = await fetch(`${API_URL}/documents/${documentId}?${searchParams.toString()}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response))
+  }
+}
+
 export async function uploadFileToS3(uploadUrl: string, file: File) {
   const response = await fetch(uploadUrl, {
     method: 'PUT',

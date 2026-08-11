@@ -284,6 +284,12 @@ mark {
   padding: 18px;
 }
 
+.document-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .document-card h3,
 .document-card p {
   margin: 0;
@@ -319,6 +325,16 @@ mark {
   background: #cbd5e1;
 }
 
+.danger-button {
+  padding: 8px 12px;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.danger-button:hover {
+  background: #fecaca;
+}
+
 @media (max-width: 720px) {
   .auth-card {
     padding: 28px;
@@ -331,6 +347,7 @@ mark {
   .documents-header,
   .documents-panel,
   .document-card,
+  .document-actions,
   .search-form {
     flex-direction: column;
     align-items: stretch;

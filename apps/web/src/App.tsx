@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import {
   API_URL,
   createUploadUrl,
+  deleteDocument,
   listDocuments,
   searchDocuments,
   uploadFileToS3,
@@ -27,6 +28,7 @@ function App() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchError, setSearchError] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -84,9 +86,7 @@ function App() {
 
     eventSource.addEventListener('document_deleted', (event) => {
       const { documentId } = JSON.parse(event.data) as { documentId: string }
-      setDocuments((currentDocuments) =>
-        currentDocuments.filter((document) => document.id !== documentId),
-      )
+      removeDocumentFromState(documentId)
     })
 
     eventSource.onerror = () => {
@@ -125,6 +125,21 @@ function App() {
     setSearchQuery('')
     setSearchResults([])
     setSearchError('')
+    setDeletingDocumentId(null)
+  }
+
+  async function handleDeleteDocument(documentId: string) {
+    setDeletingDocumentId(documentId)
+    setDocumentsError('')
+
+    try {
+      await deleteDocument(userEmail, documentId)
+      removeDocumentFromState(documentId)
+    } catch (error) {
+      setDocumentsError(error instanceof Error ? error.message : 'Failed to delete document')
+    } finally {
+      setDeletingDocumentId(null)
+    }
   }
 
   async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -295,13 +310,32 @@ function App() {
                 <h3>{document.userFilename}</h3>
                 <p>{formatDate(document.uploadedAt)}</p>
               </div>
-              <span className="status-badge">{document.status.toLowerCase()}</span>
+              <div className="document-actions">
+                <span className="status-badge">{document.status.toLowerCase()}</span>
+                <button
+                  className="danger-button"
+                  type="button"
+                  disabled={deletingDocumentId === document.id}
+                  onClick={() => void handleDeleteDocument(document.id)}
+                >
+                  {deletingDocumentId === document.id ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </article>
           ))
         )}
       </section>
     </main>
   )
+
+  function removeDocumentFromState(documentId: string) {
+    setDocuments((currentDocuments) =>
+      currentDocuments.filter((document) => document.id !== documentId),
+    )
+    setSearchResults((currentResults) =>
+      currentResults.filter((result) => result.documentId !== documentId),
+    )
+  }
 }
 
 function validateFile(file: File) {
