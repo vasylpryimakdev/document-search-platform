@@ -1,122 +1,93 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, type FormEvent } from 'react'
 import './App.css'
 
+const USER_EMAIL_STORAGE_KEY = 'document-search:user-email'
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem(USER_EMAIL_STORAGE_KEY) ?? '')
+  const [emailInput, setEmailInput] = useState(userEmail)
+  const [error, setError] = useState('')
+
+  function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const normalizedEmail = emailInput.trim().toLowerCase()
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Enter a valid email address')
+      return
+    }
+
+    localStorage.setItem(USER_EMAIL_STORAGE_KEY, normalizedEmail)
+    setUserEmail(normalizedEmail)
+    setError('')
+  }
+
+  function handleSignOut() {
+    localStorage.removeItem(USER_EMAIL_STORAGE_KEY)
+    setUserEmail('')
+    setEmailInput('')
+    setError('')
+  }
+
+  if (!userEmail) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card" aria-labelledby="auth-title">
+          <p className="eyebrow">Document Search Platform</p>
+          <h1 id="auth-title">Start with your email</h1>
+          <p className="auth-copy">
+            This demo stores your email locally to emulate authentication before document upload.
+          </p>
+
+          <form className="auth-form" onSubmit={handleEmailSubmit} noValidate>
+            <label htmlFor="email">Email address</label>
+            <input
+              id="email"
+              type="email"
+              value={emailInput}
+              placeholder="you@example.com"
+              onChange={(event) => setEmailInput(event.target.value)}
+              aria-invalid={error ? 'true' : 'false'}
+              aria-describedby={error ? 'email-error' : undefined}
+            />
+            {error ? (
+              <p className="field-error" id="email-error">
+                {error}
+              </p>
+            ) : null}
+            <button type="submit">Continue</button>
+          </form>
+        </section>
+      </main>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="documents-page">
+      <header className="documents-header">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <p className="eyebrow">Signed in as</p>
+          <h1>{userEmail}</h1>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+        <button className="secondary-button" type="button" onClick={handleSignOut}>
+          Change email
         </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <section className="documents-panel">
+        <div>
+          <h2>Your documents</h2>
+          <p>Upload, indexing status, search, and delete controls will be added next.</p>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+        <button type="button">Upload</button>
       </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 export default App
