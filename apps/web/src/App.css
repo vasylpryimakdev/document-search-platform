@@ -98,6 +98,11 @@ button:hover {
   background: #7dd3fc;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .documents-page {
   padding: 32px;
   background: #f8fafc;
@@ -147,6 +152,80 @@ button:hover {
   color: #64748b;
 }
 
+.file-input {
+  display: none;
+}
+
+.upload-error,
+.documents-list {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+.upload-error {
+  box-sizing: border-box;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 16px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.documents-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.empty-state,
+.document-card {
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 24px;
+  color: #64748b;
+}
+
+.document-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+}
+
+.document-card h3,
+.document-card p {
+  margin: 0;
+}
+
+.document-card h3 {
+  font-size: 18px;
+}
+
+.document-card p {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .secondary-button {
   background: #e2e8f0;
   color: #0f172a;
@@ -166,7 +245,8 @@ button:hover {
   }
 
   .documents-header,
-  .documents-panel {
+  .documents-panel,
+  .document-card {
     flex-direction: column;
     align-items: stretch;
   }

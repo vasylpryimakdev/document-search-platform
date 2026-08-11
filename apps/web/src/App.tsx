@@ -1,12 +1,19 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { createUploadUrl, uploadFileToS3, type UserDocument } from './api'
 import './App.css'
 
 const USER_EMAIL_STORAGE_KEY = 'document-search:user-email'
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx'])
 
 function App() {
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem(USER_EMAIL_STORAGE_KEY) ?? '')
   const [emailInput, setEmailInput] = useState(userEmail)
   const [error, setError] = useState('')
+  const [documents, setDocuments] = useState<UserDocument[]>([])
+  const [uploadError, setUploadError] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -28,6 +35,43 @@ function App() {
     setUserEmail('')
     setEmailInput('')
     setError('')
+    setDocuments([])
+    setUploadError('')
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    const validationError = validateFile(file)
+
+    if (validationError) {
+      setUploadError(validationError)
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError('')
+
+    try {
+      const { document, uploadUrl } = await createUploadUrl({
+        userEmail,
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      })
+
+      await uploadFileToS3(uploadUrl, file)
+      setDocuments((currentDocuments) => [document, ...currentDocuments])
+    } catch (uploadError) {
+      setUploadError(uploadError instanceof Error ? uploadError.message : 'Failed to upload file')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   if (!userEmail) {
@@ -75,15 +119,68 @@ function App() {
         </button>
       </header>
 
-      <section className="documents-panel">
+      <section className="documents-panel" aria-labelledby="documents-title">
         <div>
-          <h2>Your documents</h2>
-          <p>Upload, indexing status, search, and delete controls will be added next.</p>
+          <h2 id="documents-title">Your documents</h2>
+          <p>Upload one PDF or DOCX file under 10MB. New uploads appear as pending.</p>
         </div>
-        <button type="button">Upload</button>
+        <input
+          ref={fileInputRef}
+          className="file-input"
+          type="file"
+          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={handleFileChange}
+        />
+        <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
+          {isUploading ? 'Uploading...' : 'Upload'}
+        </button>
+      </section>
+
+      {uploadError ? <p className="upload-error">{uploadError}</p> : null}
+
+      <section className="documents-list" aria-label="Uploaded documents">
+        {documents.length === 0 ? (
+          <p className="empty-state">No documents uploaded in this session yet.</p>
+        ) : (
+          documents.map((document) => (
+            <article className="document-card" key={document.id}>
+              <div>
+                <h3>{document.userFilename}</h3>
+                <p>{formatDate(document.uploadedAt)}</p>
+              </div>
+              <span className="status-badge">{document.status.toLowerCase()}</span>
+            </article>
+          ))
+        )}
       </section>
     </main>
   )
+}
+
+function validateFile(file: File) {
+  const extension = getFileExtension(file.name)
+
+  if (!ALLOWED_EXTENSIONS.has(extension)) {
+    return 'Only .pdf and .docx files are allowed'
+  }
+
+  if (file.size >= MAX_FILE_SIZE_BYTES) {
+    return 'File must be smaller than 10MB'
+  }
+
+  return ''
+}
+
+function getFileExtension(filename: string) {
+  const lastDotIndex = filename.lastIndexOf('.')
+  return lastDotIndex >= 0 ? filename.slice(lastDotIndex).toLowerCase() : ''
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
 }
 
 function isValidEmail(email: string) {
