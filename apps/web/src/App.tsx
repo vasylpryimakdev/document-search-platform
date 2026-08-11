@@ -1,103 +1,44 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import {
-  API_URL,
-  createUploadUrl,
-  deleteDocument,
-  listDocuments,
-  searchDocuments,
-  uploadFileToS3,
-  type SearchResult,
-  type UserDocument,
-} from './api'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { createUploadUrl, searchDocuments, uploadFileToS3, type SearchResult } from './api'
 import './App.css'
-
-const USER_EMAIL_STORAGE_KEY = 'document-search:user-email'
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx'])
+import { AuthCard } from './components/AuthCard'
+import { DocumentsHeader } from './components/DocumentsHeader'
+import { DocumentsList } from './components/DocumentsList'
+import { SearchPanel } from './components/SearchPanel'
+import { UploadPanel } from './components/UploadPanel'
+import { useDocumentEvents } from './hooks/useDocumentEvents'
+import { useDocuments } from './hooks/useDocuments'
+import { USER_EMAIL_STORAGE_KEY, isValidEmail } from './utils/auth'
+import { validateFile } from './utils/documents'
 
 function App() {
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem(USER_EMAIL_STORAGE_KEY) ?? '')
   const [emailInput, setEmailInput] = useState(userEmail)
-  const [error, setError] = useState('')
-  const [documents, setDocuments] = useState<UserDocument[]>([])
-  const [documentsError, setDocumentsError] = useState('')
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
+  const [emailError, setEmailError] = useState('')
   const [uploadError, setUploadError] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchError, setSearchError] = useState('')
   const [isSearching, setIsSearching] = useState(false)
-  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const {
+    documents,
+    documentsError,
+    isLoadingDocuments,
+    deletingDocumentId,
+    setDocumentsError,
+    saveDocument,
+    removeDocument,
+    deleteUserDocument,
+    resetDocuments,
+  } = useDocuments(userEmail)
 
-  useEffect(() => {
-    if (!userEmail) {
-      return
-    }
-
-    let ignore = false
-
-    async function loadDocuments() {
-      setIsLoadingDocuments(true)
-      setDocumentsError('')
-
-      try {
-        const response = await listDocuments(userEmail)
-
-        if (!ignore) {
-          setDocuments(response.documents)
-        }
-      } catch (error) {
-        if (!ignore) {
-          setDocumentsError(error instanceof Error ? error.message : 'Failed to load documents')
-        }
-      } finally {
-        if (!ignore) {
-          setIsLoadingDocuments(false)
-        }
-      }
-    }
-
-    void loadDocuments()
-
-    return () => {
-      ignore = true
-    }
-  }, [userEmail])
-
-  useEffect(() => {
-    if (!userEmail) {
-      return
-    }
-
-    const searchParams = new URLSearchParams({ userEmail })
-    const eventSource = new EventSource(`${API_URL}/events?${searchParams.toString()}`)
-
-    eventSource.addEventListener('document_created', (event) => {
-      const { document } = JSON.parse(event.data) as { document: UserDocument }
-      setDocuments((currentDocuments) => upsertDocument(currentDocuments, document))
-    })
-
-    eventSource.addEventListener('document_status_updated', (event) => {
-      const { document } = JSON.parse(event.data) as { document: UserDocument }
-      setDocuments((currentDocuments) => upsertDocument(currentDocuments, document))
-    })
-
-    eventSource.addEventListener('document_deleted', (event) => {
-      const { documentId } = JSON.parse(event.data) as { documentId: string }
-      removeDocumentFromState(documentId)
-    })
-
-    eventSource.onerror = () => {
-      setDocumentsError('Live status connection failed. Refresh the page to reconnect.')
-      eventSource.close()
-    }
-
-    return () => {
-      eventSource.close()
-    }
-  }, [userEmail])
+  useDocumentEvents({
+    userEmail,
+    onDocumentChanged: saveDocument,
+    onDocumentDeleted: removeDocumentFromState,
+    onConnectionError: setDocumentsError,
+  })
 
   function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -105,64 +46,25 @@ function App() {
     const normalizedEmail = emailInput.trim().toLowerCase()
 
     if (!isValidEmail(normalizedEmail)) {
-      setError('Enter a valid email address')
+      setEmailError('Enter a valid email address')
       return
     }
 
     localStorage.setItem(USER_EMAIL_STORAGE_KEY, normalizedEmail)
     setUserEmail(normalizedEmail)
-    setError('')
+    setEmailError('')
   }
 
   function handleSignOut() {
     localStorage.removeItem(USER_EMAIL_STORAGE_KEY)
     setUserEmail('')
     setEmailInput('')
-    setError('')
-    setDocuments([])
-    setDocumentsError('')
+    setEmailError('')
     setUploadError('')
     setSearchQuery('')
     setSearchResults([])
     setSearchError('')
-    setDeletingDocumentId(null)
-  }
-
-  async function handleDeleteDocument(documentId: string) {
-    setDeletingDocumentId(documentId)
-    setDocumentsError('')
-
-    try {
-      await deleteDocument(userEmail, documentId)
-      removeDocumentFromState(documentId)
-    } catch (error) {
-      setDocumentsError(error instanceof Error ? error.message : 'Failed to delete document')
-    } finally {
-      setDeletingDocumentId(null)
-    }
-  }
-
-  async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const query = searchQuery.trim()
-
-    if (!query) {
-      setSearchError('Enter text to search')
-      return
-    }
-
-    setIsSearching(true)
-    setSearchError('')
-
-    try {
-      const response = await searchDocuments(userEmail, query)
-      setSearchResults(response.results)
-    } catch (error) {
-      setSearchError(error instanceof Error ? error.message : 'Failed to search documents')
-    } finally {
-      setIsSearching(false)
-    }
+    resetDocuments()
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -192,7 +94,7 @@ function App() {
       })
 
       await uploadFileToS3(uploadUrl, file)
-      setDocuments((currentDocuments) => upsertDocument(currentDocuments, document))
+      saveDocument(document)
     } catch (uploadError) {
       setUploadError(uploadError instanceof Error ? uploadError.message : 'Failed to upload file')
     } finally {
@@ -200,194 +102,83 @@ function App() {
     }
   }
 
+  async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const query = searchQuery.trim()
+
+    if (!query) {
+      setSearchError('Enter text to search')
+      return
+    }
+
+    setIsSearching(true)
+    setSearchError('')
+
+    try {
+      const response = await searchDocuments(userEmail, query)
+      setSearchResults(response.results)
+    } catch (error) {
+      setSearchError(error instanceof Error ? error.message : 'Failed to search documents')
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  async function handleDeleteDocument(documentId: string) {
+    const deleted = await deleteUserDocument(documentId)
+
+    if (deleted) {
+      removeDocumentFromSearchResults(documentId)
+    }
+  }
+
+  function removeDocumentFromState(documentId: string) {
+    removeDocument(documentId)
+    removeDocumentFromSearchResults(documentId)
+  }
+
+  function removeDocumentFromSearchResults(documentId: string) {
+    setSearchResults((currentResults) =>
+      currentResults.filter((result) => result.documentId !== documentId),
+    )
+  }
+
   if (!userEmail) {
     return (
-      <main className="auth-page">
-        <section className="auth-card" aria-labelledby="auth-title">
-          <p className="eyebrow">Document Search Platform</p>
-          <h1 id="auth-title">Start with your email</h1>
-          <p className="auth-copy">
-            This demo stores your email locally to emulate authentication before document upload.
-          </p>
-
-          <form className="auth-form" onSubmit={handleEmailSubmit} noValidate>
-            <label htmlFor="email">Email address</label>
-            <input
-              id="email"
-              type="email"
-              value={emailInput}
-              placeholder="you@example.com"
-              onChange={(event) => setEmailInput(event.target.value)}
-              aria-invalid={error ? 'true' : 'false'}
-              aria-describedby={error ? 'email-error' : undefined}
-            />
-            {error ? (
-              <p className="field-error" id="email-error">
-                {error}
-              </p>
-            ) : null}
-            <button type="submit">Continue</button>
-          </form>
-        </section>
-      </main>
+      <AuthCard
+        emailInput={emailInput}
+        error={emailError}
+        onEmailInputChange={setEmailInput}
+        onSubmit={handleEmailSubmit}
+      />
     )
   }
 
   return (
     <main className="documents-page">
-      <header className="documents-header">
-        <div>
-          <p className="eyebrow">Signed in as</p>
-          <h1>{userEmail}</h1>
-        </div>
-        <button className="secondary-button" type="button" onClick={handleSignOut}>
-          Change email
-        </button>
-      </header>
-
-      <section className="documents-panel" aria-labelledby="documents-title">
-        <div>
-          <h2 id="documents-title">Your documents</h2>
-          <p>Upload one PDF or DOCX file under 10MB. New uploads appear as pending.</p>
-        </div>
-        <input
-          ref={fileInputRef}
-          className="file-input"
-          type="file"
-          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          onChange={handleFileChange}
-        />
-        <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
-          {isUploading ? 'Uploading...' : 'Upload'}
-        </button>
-      </section>
+      <DocumentsHeader userEmail={userEmail} onSignOut={handleSignOut} />
+      <UploadPanel isUploading={isUploading} onFileChange={handleFileChange} />
 
       {uploadError ? <p className="upload-error">{uploadError}</p> : null}
       {documentsError ? <p className="upload-error">{documentsError}</p> : null}
 
-      <section className="search-panel" aria-labelledby="search-title">
-        <div>
-          <h2 id="search-title">Search indexed documents</h2>
-          <p>Search uses OpenSearch fuzziness and returns text highlights from matching documents.</p>
-        </div>
-        <form className="search-form" onSubmit={handleSearchSubmit}>
-          <input
-            type="search"
-            value={searchQuery}
-            placeholder="Search contract terms, names, clauses..."
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-          <button type="submit" disabled={isSearching}>
-            {isSearching ? 'Searching...' : 'Search'}
-          </button>
-        </form>
-        {searchError ? <p className="search-error">{searchError}</p> : null}
-        {searchResults.length > 0 ? (
-          <div className="search-results">
-            {searchResults.map((result) => (
-              <article className="search-result" key={result.documentId}>
-                <h3>{result.userFilename}</h3>
-                <div className="highlights">
-                  {result.highlights.map((highlight, index) => (
-                    <p key={`${result.documentId}-${index}`}>{renderHighlight(highlight)}</p>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section className="documents-list" aria-label="Uploaded documents">
-        {isLoadingDocuments ? (
-          <p className="empty-state">Loading documents...</p>
-        ) : documents.length === 0 ? (
-          <p className="empty-state">No documents uploaded in this session yet.</p>
-        ) : (
-          documents.map((document) => (
-            <article className="document-card" key={document.id}>
-              <div>
-                <h3>{document.userFilename}</h3>
-                <p>{formatDate(document.uploadedAt)}</p>
-              </div>
-              <div className="document-actions">
-                <span className="status-badge">{document.status.toLowerCase()}</span>
-                <button
-                  className="danger-button"
-                  type="button"
-                  disabled={deletingDocumentId === document.id}
-                  onClick={() => void handleDeleteDocument(document.id)}
-                >
-                  {deletingDocumentId === document.id ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </article>
-          ))
-        )}
-      </section>
+      <SearchPanel
+        searchQuery={searchQuery}
+        searchResults={searchResults}
+        searchError={searchError}
+        isSearching={isSearching}
+        onSearchQueryChange={setSearchQuery}
+        onSearchSubmit={handleSearchSubmit}
+      />
+      <DocumentsList
+        documents={documents}
+        isLoadingDocuments={isLoadingDocuments}
+        deletingDocumentId={deletingDocumentId}
+        onDeleteDocument={(documentId) => void handleDeleteDocument(documentId)}
+      />
     </main>
   )
-
-  function removeDocumentFromState(documentId: string) {
-    setDocuments((currentDocuments) =>
-      currentDocuments.filter((document) => document.id !== documentId),
-    )
-    setSearchResults((currentResults) =>
-      currentResults.filter((result) => result.documentId !== documentId),
-    )
-  }
-}
-
-function validateFile(file: File) {
-  const extension = getFileExtension(file.name)
-
-  if (!ALLOWED_EXTENSIONS.has(extension)) {
-    return 'Only .pdf and .docx files are allowed'
-  }
-
-  if (file.size >= MAX_FILE_SIZE_BYTES) {
-    return 'File must be smaller than 10MB'
-  }
-
-  return ''
-}
-
-function upsertDocument(documents: UserDocument[], nextDocument: UserDocument) {
-  const existingIndex = documents.findIndex((document) => document.id === nextDocument.id)
-
-  if (existingIndex === -1) {
-    return [nextDocument, ...documents]
-  }
-
-  return documents.map((document, index) => (index === existingIndex ? nextDocument : document))
-}
-
-function renderHighlight(highlight: string) {
-  return highlight.split(/(<em>|<\/em>)/).map((part, index, parts) => {
-    if (part === '<em>' || part === '</em>') {
-      return null
-    }
-
-    const isHighlighted = parts[index - 1] === '<em>' && parts[index + 1] === '</em>'
-
-    return isHighlighted ? <mark key={index}>{part}</mark> : part
-  })
-}
-
-function getFileExtension(filename: string) {
-  const lastDotIndex = filename.lastIndexOf('.')
-  return lastDotIndex >= 0 ? filename.slice(lastDotIndex).toLowerCase() : ''
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
-}
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 export default App
