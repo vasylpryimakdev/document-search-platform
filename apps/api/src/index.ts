@@ -3,6 +3,7 @@ import "dotenv/config";
 import express from "express";
 import { documentsRouter } from "./routes/documents.js";
 import { eventsRouter } from "./routes/events.js";
+import { startDocumentIndexingWorker } from "./workers/document-indexing-worker.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -24,4 +25,9 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 app.listen(port, () => {
   console.log(`API server listening on port ${port}`);
+
+  if (process.env.WORKER_ENABLED === "true") {
+    startDocumentIndexingWorker();
+    console.log("Document indexing worker started");
+  }
 });
