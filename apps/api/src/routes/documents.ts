@@ -13,6 +13,32 @@ const ALLOWED_CONTENT_TYPES = new Set([
 
 export const documentsRouter = Router();
 
+documentsRouter.get("/", async (req, res, next) => {
+  try {
+    const { userEmail } = req.query;
+
+    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
+      return res.status(400).json({ message: "Valid userEmail is required" });
+    }
+
+    const documents = await prisma.document.findMany({
+      where: { userEmail },
+      orderBy: { uploadedAt: "desc" },
+      select: {
+        id: true,
+        userFilename: true,
+        status: true,
+        uploadedAt: true,
+        indexedAt: true,
+      },
+    });
+
+    return res.json({ documents });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 documentsRouter.post("/upload-url", async (req, res, next) => {
   try {
     const { userEmail, filename, contentType, size } = req.body as {
