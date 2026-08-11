@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { Router } from "express";
+import { sendUserEvent } from "../lib/events.js";
 import { prisma } from "../lib/prisma.js";
 import { createUploadUrl } from "../lib/s3.js";
 
@@ -106,6 +107,11 @@ documentsRouter.post("/upload-url", async (req, res, next) => {
       bucket,
       key: s3Filename,
       contentType,
+    });
+
+    sendUserEvent(userEmail, {
+      type: "document_created",
+      payload: { document },
     });
 
     return res.status(201).json({
