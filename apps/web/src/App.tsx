@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { createUploadUrl, listDocuments, uploadFileToS3, type UserDocument } from './api'
+import { API_URL, createUploadUrl, listDocuments, uploadFileToS3, type UserDocument } from './api'
 import './App.css'
 
 const USER_EMAIL_STORAGE_KEY = 'document-search:user-email'
@@ -49,6 +49,41 @@ function App() {
 
     return () => {
       ignore = true
+    }
+  }, [userEmail])
+
+  useEffect(() => {
+    if (!userEmail) {
+      return
+    }
+
+    const searchParams = new URLSearchParams({ userEmail })
+    const eventSource = new EventSource(`${API_URL}/events?${searchParams.toString()}`)
+
+    eventSource.addEventListener('document_created', (event) => {
+      const { document } = JSON.parse(event.data) as { document: UserDocument }
+      setDocuments((currentDocuments) => upsertDocument(currentDocuments, document))
+    })
+
+    eventSource.addEventListener('document_status_updated', (event) => {
+      const { document } = JSON.parse(event.data) as { document: UserDocument }
+      setDocuments((currentDocuments) => upsertDocument(currentDocuments, document))
+    })
+
+    eventSource.addEventListener('document_deleted', (event) => {
+      const { documentId } = JSON.parse(event.data) as { documentId: string }
+      setDocuments((currentDocuments) =>
+        currentDocuments.filter((document) => document.id !== documentId),
+      )
+    })
+
+    eventSource.onerror = () => {
+      setDocumentsError('Live status connection failed. Refresh the page to reconnect.')
+      eventSource.close()
+    }
+
+    return () => {
+      eventSource.close()
     }
   }, [userEmail])
 
@@ -104,7 +139,7 @@ function App() {
       })
 
       await uploadFileToS3(uploadUrl, file)
-      setDocuments((currentDocuments) => [document, ...currentDocuments])
+      setDocuments((currentDocuments) => upsertDocument(currentDocuments, document))
     } catch (uploadError) {
       setUploadError(uploadError instanceof Error ? uploadError.message : 'Failed to upload file')
     } finally {
@@ -210,6 +245,16 @@ function validateFile(file: File) {
   }
 
   return ''
+}
+
+function upsertDocument(documents: UserDocument[], nextDocument: UserDocument) {
+  const existingIndex = documents.findIndex((document) => document.id === nextDocument.id)
+
+  if (existingIndex === -1) {
+    return [nextDocument, ...documents]
+  }
+
+  return documents.map((document, index) => (index === existingIndex ? nextDocument : document))
 }
 
 function getFileExtension(filename: string) {
