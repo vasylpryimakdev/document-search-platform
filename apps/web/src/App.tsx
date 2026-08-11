@@ -1,5 +1,5 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { createUploadUrl, uploadFileToS3, type UserDocument } from './api'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { createUploadUrl, listDocuments, uploadFileToS3, type UserDocument } from './api'
 import './App.css'
 
 const USER_EMAIL_STORAGE_KEY = 'document-search:user-email'
@@ -11,9 +11,46 @@ function App() {
   const [emailInput, setEmailInput] = useState(userEmail)
   const [error, setError] = useState('')
   const [documents, setDocuments] = useState<UserDocument[]>([])
+  const [documentsError, setDocumentsError] = useState('')
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!userEmail) {
+      return
+    }
+
+    let ignore = false
+
+    async function loadDocuments() {
+      setIsLoadingDocuments(true)
+      setDocumentsError('')
+
+      try {
+        const response = await listDocuments(userEmail)
+
+        if (!ignore) {
+          setDocuments(response.documents)
+        }
+      } catch (error) {
+        if (!ignore) {
+          setDocumentsError(error instanceof Error ? error.message : 'Failed to load documents')
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingDocuments(false)
+        }
+      }
+    }
+
+    void loadDocuments()
+
+    return () => {
+      ignore = true
+    }
+  }, [userEmail])
 
   function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -36,6 +73,7 @@ function App() {
     setEmailInput('')
     setError('')
     setDocuments([])
+    setDocumentsError('')
     setUploadError('')
   }
 
@@ -137,9 +175,12 @@ function App() {
       </section>
 
       {uploadError ? <p className="upload-error">{uploadError}</p> : null}
+      {documentsError ? <p className="upload-error">{documentsError}</p> : null}
 
       <section className="documents-list" aria-label="Uploaded documents">
-        {documents.length === 0 ? (
+        {isLoadingDocuments ? (
+          <p className="empty-state">Loading documents...</p>
+        ) : documents.length === 0 ? (
           <p className="empty-state">No documents uploaded in this session yet.</p>
         ) : (
           documents.map((document) => (

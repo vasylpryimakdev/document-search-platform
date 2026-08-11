@@ -16,6 +16,21 @@ type CreateUploadUrlResponse = {
   uploadUrl: string
 }
 
+type ListDocumentsResponse = {
+  documents: UserDocument[]
+}
+
+export async function listDocuments(userEmail: string) {
+  const searchParams = new URLSearchParams({ userEmail })
+  const response = await fetch(`${API_URL}/documents?${searchParams.toString()}`)
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response))
+  }
+
+  return response.json() as Promise<ListDocumentsResponse>
+}
+
 export async function createUploadUrl(input: {
   userEmail: string
   filename: string
