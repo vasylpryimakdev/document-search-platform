@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Readable } from "node:stream";
 
@@ -33,6 +33,15 @@ export async function getObjectBuffer(bucket: string, key: string) {
   }
 
   return streamToBuffer(response.Body as Readable);
+}
+
+export async function deleteObject(bucket: string, key: string) {
+  await s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    }),
+  );
 }
 
 async function streamToBuffer(stream: Readable) {

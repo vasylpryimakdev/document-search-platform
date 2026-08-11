@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { Router } from "express";
 import { sendUserEvent } from "../lib/events.js";
-import { searchDocuments } from "../lib/opensearch.js";
+import { deleteIndexedDocument, searchDocuments } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
-import { createUploadUrl } from "../lib/s3.js";
+import { createUploadUrl, deleteObject } from "../lib/s3.js";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
@@ -59,6 +59,40 @@ documentsRouter.get("/", async (req, res, next) => {
     });
 
     return res.json({ documents });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+documentsRouter.delete("/:id", async (req, res, next) => {
+  try {
+    const { userEmail } = req.query;
+
+    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
+      return res.status(400).json({ message: "Valid userEmail is required" });
+    }
+
+    const document = await prisma.document.findFirst({
+      where: {
+        id: req.params.id,
+        userEmail,
+      },
+    });
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    await deleteObject(document.s3Bucket, document.s3Filename);
+    await deleteIndexedDocument(document.id);
+    await prisma.document.delete({ where: { id: document.id } });
+
+    sendUserEvent(userEmail, {
+      type: "document_deleted",
+      payload: { documentId: document.id },
+    });
+
+    return res.status(204).send();
   } catch (error) {
     return next(error);
   }

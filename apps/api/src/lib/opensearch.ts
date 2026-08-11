@@ -94,6 +94,33 @@ export async function searchDocuments({ userEmail, query }: SearchDocumentsInput
   }));
 }
 
+export async function deleteIndexedDocument(documentId: string) {
+  await ensureDocumentsIndex();
+
+  try {
+    await opensearchClient.delete({
+      index: indexName,
+      id: documentId,
+      refresh: true,
+    });
+  } catch (error) {
+    if (isOpenSearchNotFoundError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+function isOpenSearchNotFoundError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "statusCode" in error &&
+    (error as { statusCode?: number }).statusCode === 404
+  );
+}
+
 async function ensureDocumentsIndex() {
   const exists = await opensearchClient.indices.exists({ index: indexName });
 
