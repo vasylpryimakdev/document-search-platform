@@ -90,9 +90,9 @@ http://localhost:5601
 
 ## Environment Variables
 
-Backend variables are documented in `.env.example`.
+Backend variables are documented in `apps/api/.env.example`.
 
-Create `apps/api/.env`:
+Create `apps/api/.env` from `apps/api/.env.example`:
 
 ```env
 PORT=3001
@@ -109,7 +109,7 @@ WORKER_ENABLED="false"
 
 Frontend variables are documented in `apps/web/.env.example`.
 
-Create `apps/web/.env`:
+Create `apps/web/.env` from `apps/web/.env.example`:
 
 ```env
 VITE_API_URL="http://localhost:3001"
