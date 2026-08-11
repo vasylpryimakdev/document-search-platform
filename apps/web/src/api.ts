@@ -20,6 +20,17 @@ type ListDocumentsResponse = {
   documents: UserDocument[]
 }
 
+export type SearchResult = {
+  documentId: string
+  userFilename: string
+  uploadedAt: string | null
+  highlights: string[]
+}
+
+type SearchDocumentsResponse = {
+  results: SearchResult[]
+}
+
 export async function listDocuments(userEmail: string) {
   const searchParams = new URLSearchParams({ userEmail })
   const response = await fetch(`${API_URL}/documents?${searchParams.toString()}`)
@@ -48,6 +59,17 @@ export async function createUploadUrl(input: {
   }
 
   return response.json() as Promise<CreateUploadUrlResponse>
+}
+
+export async function searchDocuments(userEmail: string, query: string) {
+  const searchParams = new URLSearchParams({ userEmail, q: query })
+  const response = await fetch(`${API_URL}/documents/search?${searchParams.toString()}`)
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response))
+  }
+
+  return response.json() as Promise<SearchDocumentsResponse>
 }
 
 export async function uploadFileToS3(uploadUrl: string, file: File) {

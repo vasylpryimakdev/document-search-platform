@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { API_URL, createUploadUrl, listDocuments, uploadFileToS3, type UserDocument } from './api'
+import {
+  API_URL,
+  createUploadUrl,
+  listDocuments,
+  searchDocuments,
+  uploadFileToS3,
+  type SearchResult,
+  type UserDocument,
+} from './api'
 import './App.css'
 
 const USER_EMAIL_STORAGE_KEY = 'document-search:user-email'
@@ -15,6 +23,10 @@ function App() {
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [isUploading, setIsUploading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchError, setSearchError] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -110,6 +122,32 @@ function App() {
     setDocuments([])
     setDocumentsError('')
     setUploadError('')
+    setSearchQuery('')
+    setSearchResults([])
+    setSearchError('')
+  }
+
+  async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const query = searchQuery.trim()
+
+    if (!query) {
+      setSearchError('Enter text to search')
+      return
+    }
+
+    setIsSearching(true)
+    setSearchError('')
+
+    try {
+      const response = await searchDocuments(userEmail, query)
+      setSearchResults(response.results)
+    } catch (error) {
+      setSearchError(error instanceof Error ? error.message : 'Failed to search documents')
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -212,6 +250,39 @@ function App() {
       {uploadError ? <p className="upload-error">{uploadError}</p> : null}
       {documentsError ? <p className="upload-error">{documentsError}</p> : null}
 
+      <section className="search-panel" aria-labelledby="search-title">
+        <div>
+          <h2 id="search-title">Search indexed documents</h2>
+          <p>Search uses OpenSearch fuzziness and returns text highlights from matching documents.</p>
+        </div>
+        <form className="search-form" onSubmit={handleSearchSubmit}>
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Search contract terms, names, clauses..."
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+          <button type="submit" disabled={isSearching}>
+            {isSearching ? 'Searching...' : 'Search'}
+          </button>
+        </form>
+        {searchError ? <p className="search-error">{searchError}</p> : null}
+        {searchResults.length > 0 ? (
+          <div className="search-results">
+            {searchResults.map((result) => (
+              <article className="search-result" key={result.documentId}>
+                <h3>{result.userFilename}</h3>
+                <div className="highlights">
+                  {result.highlights.map((highlight, index) => (
+                    <p key={`${result.documentId}-${index}`}>{renderHighlight(highlight)}</p>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
       <section className="documents-list" aria-label="Uploaded documents">
         {isLoadingDocuments ? (
           <p className="empty-state">Loading documents...</p>
@@ -255,6 +326,18 @@ function upsertDocument(documents: UserDocument[], nextDocument: UserDocument) {
   }
 
   return documents.map((document, index) => (index === existingIndex ? nextDocument : document))
+}
+
+function renderHighlight(highlight: string) {
+  return highlight.split(/(<em>|<\/em>)/).map((part, index, parts) => {
+    if (part === '<em>' || part === '</em>') {
+      return null
+    }
+
+    const isHighlighted = parts[index - 1] === '<em>' && parts[index + 1] === '</em>'
+
+    return isHighlighted ? <mark key={index}>{part}</mark> : part
+  })
 }
 
 function getFileExtension(filename: string) {
