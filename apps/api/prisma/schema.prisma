@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentStatus {
+  PENDING
+  INDEXED
+  ERROR
+}
+
+model Document {
+  id           String         @id @default(uuid())
+  userEmail    String
+  userFilename String
+  s3Filename   String         @unique
+  s3Bucket     String
+  mimeType     String
+  size         Int
+  status       DocumentStatus @default(PENDING)
+  errorMessage String?
+  uploadedAt   DateTime       @default(now())
+  indexedAt    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([userEmail, uploadedAt])
+  @@index([status])
+}
