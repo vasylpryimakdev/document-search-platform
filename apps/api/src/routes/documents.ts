@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { Router } from "express";
 import { sendUserEvent } from "../lib/events.js";
+import { searchDocuments } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
 import { createUploadUrl } from "../lib/s3.js";
 
@@ -13,6 +14,29 @@ const ALLOWED_CONTENT_TYPES = new Set([
 ]);
 
 export const documentsRouter = Router();
+
+documentsRouter.get("/search", async (req, res, next) => {
+  try {
+    const { userEmail, q } = req.query;
+
+    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
+      return res.status(400).json({ message: "Valid userEmail is required" });
+    }
+
+    if (typeof q !== "string" || q.trim().length === 0) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const results = await searchDocuments({
+      userEmail,
+      query: q.trim(),
+    });
+
+    return res.json({ results });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 documentsRouter.get("/", async (req, res, next) => {
   try {

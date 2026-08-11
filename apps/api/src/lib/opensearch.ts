@@ -30,6 +30,70 @@ export async function indexDocument(input: IndexDocumentInput) {
   });
 }
 
+type SearchDocumentsInput = {
+  userEmail: string;
+  query: string;
+};
+
+type SearchHitSource = {
+  documentId?: string;
+  userFilename?: string;
+  uploadedAt?: string;
+};
+
+type SearchHit = {
+  _id: string;
+  _source?: SearchHitSource;
+  highlight?: {
+    content?: string[];
+  };
+};
+
+type SearchResponseBody = {
+  hits: {
+    hits: SearchHit[];
+  };
+};
+
+export async function searchDocuments({ userEmail, query }: SearchDocumentsInput) {
+  await ensureDocumentsIndex();
+
+  const response = await opensearchClient.search({
+    index: indexName,
+    body: {
+      query: {
+        bool: {
+          filter: [{ term: { userEmail } }],
+          must: [
+            {
+              match: {
+                content: {
+                  query,
+                  fuzziness: "AUTO",
+                },
+              },
+            },
+          ],
+        },
+      },
+      highlight: {
+        fields: {
+          content: {},
+        },
+      },
+    },
+  });
+
+  const body = response.body as unknown as SearchResponseBody;
+
+  return body.hits.hits.map((hit) => ({
+    documentId: hit._source?.documentId ?? hit._id,
+    userFilename: hit._source?.userFilename ?? "Unknown document",
+    uploadedAt: hit._source?.uploadedAt ?? null,
+    highlights: hit.highlight?.content ?? [],
+  }));
+}
+
 async function ensureDocumentsIndex() {
   const exists = await opensearchClient.indices.exists({ index: indexName });
 
