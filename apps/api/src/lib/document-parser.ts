@@ -31,11 +31,18 @@ export function validateDocumentSignature(buffer: Buffer, filename: string) {
     return;
   }
 
-  if (extension === ".docx" && buffer.subarray(0, 2).toString("utf8") === "PK") {
+  if (extension === ".docx" && isDocxBuffer(buffer)) {
     return;
   }
 
   throw new Error(
     `Uploaded file content does not match ${extension} signature`,
+  );
+}
+
+function isDocxBuffer(buffer: Buffer) {
+  return (
+    buffer.subarray(0, 2).toString("utf8") === "PK" &&
+    buffer.includes(Buffer.from("word/"))
   );
 }
