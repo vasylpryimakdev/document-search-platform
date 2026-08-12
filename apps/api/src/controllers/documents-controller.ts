@@ -4,7 +4,7 @@ import type { RequestHandler } from "express";
 import { sendUserEvent } from "../lib/events.js";
 import { deleteIndexedDocument, searchDocuments } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
-import { createUploadUrl, deleteObject } from "../lib/s3.js";
+import { createUploadUrl, deleteObjectIfExists } from "../lib/s3.js";
 import { getRequiredEnv } from "../config/env.js";
 import { getRequiredParam, getRequiredQueryString, getUserEmail } from "../utils/request.js";
 import { parseUserEmail } from "../utils/validation.js";
@@ -90,7 +90,7 @@ export const deleteUserDocument: RequestHandler = async (req, res, next) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
-    await deleteObject(document.s3Bucket, document.s3Filename);
+    await deleteObjectIfExists(document.s3Bucket, document.s3Filename);
     await deleteIndexedDocument(document.id);
     await prisma.document.delete({ where: { id: document.id } });
 

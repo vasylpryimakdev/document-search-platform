@@ -44,6 +44,27 @@ export async function deleteObject(bucket: string, key: string) {
   );
 }
 
+export async function deleteObjectIfExists(bucket: string, key: string) {
+  try {
+    await deleteObject(bucket, key);
+  } catch (error) {
+    if (isS3NotFoundError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+function isS3NotFoundError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "$metadata" in error &&
+    (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404
+  );
+}
+
 async function streamToBuffer(stream: Readable) {
   const chunks: Buffer[] = [];
 
