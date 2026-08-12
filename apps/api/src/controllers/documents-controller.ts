@@ -1,11 +1,11 @@
-import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { RequestHandler } from "express";
-import { sendUserEvent } from "../lib/events.js";
-import { deleteIndexedDocument, searchDocuments } from "../lib/opensearch.js";
-import { prisma } from "../lib/prisma.js";
-import { createUploadUrl, deleteObjectIfExists } from "../lib/s3.js";
-import { getRequiredEnv } from "../config/env.js";
+import {
+  createDocumentUpload,
+  deleteDocumentForUser,
+  listDocumentsByUser,
+  searchUserDocumentsByContent,
+} from "../services/documents-service.js";
 import { getRequiredParam, getRequiredQueryString, getUserEmail } from "../utils/request.js";
 import { parseUserEmail } from "../utils/validation.js";
 
@@ -29,10 +29,7 @@ export const searchUserDocuments: RequestHandler = async (req, res, next) => {
       return res.status(400).json({ message: "Search query is required" });
     }
 
-    const results = await searchDocuments({
-      userEmail: userEmail.value,
-      query: query.value,
-    });
+    const results = await searchUserDocumentsByContent(userEmail.value, query.value);
 
     return res.json({ results });
   } catch (error) {
@@ -48,17 +45,7 @@ export const listUserDocuments: RequestHandler = async (req, res, next) => {
       return res.status(400).json({ message: userEmail.error });
     }
 
-    const documents = await prisma.document.findMany({
-      where: { userEmail: userEmail.value },
-      orderBy: { uploadedAt: "desc" },
-      select: {
-        id: true,
-        userFilename: true,
-        status: true,
-        uploadedAt: true,
-        indexedAt: true,
-      },
-    });
+    const documents = await listDocumentsByUser(userEmail.value);
 
     return res.json({ documents });
   } catch (error) {
@@ -79,25 +66,11 @@ export const deleteUserDocument: RequestHandler = async (req, res, next) => {
       return res.status(400).json({ message: "Document id is required" });
     }
 
-    const document = await prisma.document.findFirst({
-      where: {
-        id: documentId.value,
-        userEmail: userEmail.value,
-      },
-    });
+    const deleted = await deleteDocumentForUser(userEmail.value, documentId.value);
 
-    if (!document) {
+    if (!deleted) {
       return res.status(404).json({ message: "Document not found" });
     }
-
-    await deleteObjectIfExists(document.s3Bucket, document.s3Filename);
-    await deleteIndexedDocument(document.id);
-    await prisma.document.delete({ where: { id: document.id } });
-
-    sendUserEvent(userEmail.value, {
-      type: "document_deleted",
-      payload: { documentId: document.id },
-    });
 
     return res.status(204).send();
   } catch (error) {
@@ -142,39 +115,12 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
       return res.status(400).json({ message: "Only .pdf and .docx files are allowed" });
     }
 
-    const bucket = getRequiredEnv("S3_BUCKET_NAME");
-
-    const documentId = randomUUID();
-    const s3Filename = `documents/${sanitizeEmailForS3(validUserEmail.value)}/${documentId}${extension}`;
-
-    const document = await prisma.document.create({
-      data: {
-        id: documentId,
-        userEmail: validUserEmail.value,
-        userFilename: filename,
-        s3Filename,
-        s3Bucket: bucket,
-        mimeType: contentType,
-        size,
-      },
-      select: {
-        id: true,
-        userFilename: true,
-        s3Filename: true,
-        status: true,
-        uploadedAt: true,
-      },
-    });
-
-    const uploadUrl = await createUploadUrl({
-      bucket,
-      key: s3Filename,
+    const { document, uploadUrl } = await createDocumentUpload({
+      userEmail: validUserEmail.value,
+      userFilename: filename,
+      extension,
       contentType,
-    });
-
-    sendUserEvent(validUserEmail.value, {
-      type: "document_created",
-      payload: { document },
+      size,
     });
 
     return res.status(201).json({
@@ -185,7 +131,3 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
     return next(error);
   }
 };
-
-function sanitizeEmailForS3(email: string) {
-  return email.toLowerCase().replace(/[^a-z0-9@._-]/g, "_");
-}
