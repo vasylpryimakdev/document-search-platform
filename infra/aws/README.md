@@ -132,7 +132,7 @@ Run `terraform init -migrate-state` after adding the backend.
 
 This infrastructure is intentionally production-like without becoming a large platform setup:
 
-- PostgreSQL and OpenSearch run on the EC2 host with Docker to avoid RDS/OpenSearch Service costs.
+- PostgreSQL and OpenSearch run on the EC2 host with Docker to avoid RDS and Amazon OpenSearch Service costs. The app still uses the OpenSearch API for indexing, fuzziness, and highlights; production can switch `OPENSEARCH_URL` to Amazon OpenSearch Service.
 - The API host uses SSM instead of SSH keys.
 - The API is exposed through Nginx and Let's Encrypt on an `sslip.io` hostname instead of Route53, ACM, and an ALB.
 - Terraform manages shared AWS infrastructure and the EC2 host. Application artifacts are still deployed separately through S3 and SSM to keep the flow simple.

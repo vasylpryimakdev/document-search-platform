@@ -163,6 +163,8 @@ http://localhost:5173
 
 AWS resources are documented declaratively with Terraform in `infra/aws`.
 
+OpenSearch is intentionally self-hosted as a Docker container on the EC2 API host for this test task. The application still uses the OpenSearch engine/API for indexing, fuzziness, and highlights, but avoids the cost and setup overhead of Amazon OpenSearch Service. In a production AWS deployment, `OPENSEARCH_URL` can point to Amazon OpenSearch Service without changing the application search flow.
+
 The Terraform configuration covers:
 
 - S3 bucket with public access blocked, server-side encryption, lifecycle cleanup, CORS, and object-created notifications for the `documents/` prefix.
