@@ -52,9 +52,52 @@ Use the `api_host_https_url` output as the Vercel frontend API URL:
 VITE_API_URL="<api_host_https_url>"
 ```
 
-## Existing Demo Resources
+## Deploy API
 
-The current live demo was initially provisioned manually with AWS CLI/SSM. This Terraform folder documents the intended reproducible setup for reviewers and future environments.
+Terraform creates the AWS infrastructure and EC2 host. The API artifact is deployed separately through S3 and SSM so application releases do not require replacing infrastructure.
+
+From the repository root, build the API:
+
+```bash
+cd apps/api
+npm install
+npm run build
+npx prisma validate
+```
+
+Upload the API artifact to the Terraform-managed S3 bucket:
+
+```bash
+aws s3 sync dist s3://<s3_bucket_name>/deploy/api/dist/ --delete
+aws s3 sync prisma s3://<s3_bucket_name>/deploy/api/prisma/ --delete
+aws s3 cp package.json s3://<s3_bucket_name>/deploy/api/package.json
+aws s3 cp package-lock.json s3://<s3_bucket_name>/deploy/api/package-lock.json
+```
+
+Run deployment on the EC2 host through SSM:
+
+```bash
+aws ssm send-command \
+  --instance-ids <api_host_instance_id> \
+  --document-name AWS-RunShellScript \
+  --parameters '{"commands":[
+    "sudo aws s3 sync s3://<s3_bucket_name>/deploy/api/ /opt/document-search-platform/apps/api/ --delete",
+    "cd /opt/document-search-platform/apps/api && sudo npm ci --omit=dev",
+    "cd /opt/document-search-platform/apps/api && sudo npx prisma generate",
+    "cd /opt/document-search-platform/apps/api && sudo npx prisma migrate deploy",
+    "sudo systemctl restart document-search-api"
+  ]}'
+```
+
+Verify the deployment:
+
+```bash
+curl <api_host_https_url>/health
+```
+
+## Import Existing Resources
+
+The current AWS stack is Terraform-managed. If you create resources manually in a different environment, import them before applying changes:
 
 To bring existing resources under Terraform management, import them before applying changes:
 
@@ -65,7 +108,7 @@ terraform import aws_iam_role.api_host <role-name>
 terraform import aws_security_group.api <security-group-id>
 ```
 
-Importing every dependent resource is intentionally left explicit to avoid accidental replacement of live demo infrastructure.
+Importing every dependent resource is intentionally left explicit to avoid accidental replacement of live infrastructure.
 
 ## Test Task Trade-Offs
 
