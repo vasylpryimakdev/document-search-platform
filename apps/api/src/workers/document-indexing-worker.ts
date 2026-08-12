@@ -5,7 +5,7 @@ import {
   type Message,
 } from "@aws-sdk/client-sqs";
 import { sendUserEvent } from "../lib/events.js";
-import { parseDocument } from "../lib/document-parser.js";
+import { parseDocument, validateDocumentSignature } from "../lib/document-parser.js";
 import { indexDocument } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
 import { getObjectBuffer } from "../lib/s3.js";
@@ -92,6 +92,8 @@ async function processS3Object(bucket: string, key: string) {
 
   try {
     const file = await getObjectBuffer(bucket, key);
+    validateDocumentSignature(file, document.userFilename);
+
     const content = await parseDocument(file, document.userFilename);
 
     await indexDocument({
