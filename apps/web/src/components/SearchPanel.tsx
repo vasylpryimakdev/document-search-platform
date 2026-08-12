@@ -2,26 +2,24 @@ import type { FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import type { SearchResult } from '../api'
+import { useAuthStore } from '../stores/auth-store'
+import { useSearchStore } from '../stores/search-store'
 import { renderHighlight } from '../utils/format'
 
-type SearchPanelProps = {
-  searchQuery: string
-  searchResults: SearchResult[]
-  searchError: string
-  isSearching: boolean
-  onSearchQueryChange: (value: string) => void
-  onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void
-}
+export function SearchPanel() {
+  const userEmail = useAuthStore((state) => state.userEmail)
+  const searchQuery = useSearchStore((state) => state.searchQuery)
+  const searchResults = useSearchStore((state) => state.searchResults)
+  const searchError = useSearchStore((state) => state.searchError)
+  const isSearching = useSearchStore((state) => state.isSearching)
+  const setSearchQuery = useSearchStore((state) => state.setSearchQuery)
+  const searchUserDocuments = useSearchStore((state) => state.searchUserDocuments)
 
-export function SearchPanel({
-  searchQuery,
-  searchResults,
-  searchError,
-  isSearching,
-  onSearchQueryChange,
-  onSearchSubmit,
-}: SearchPanelProps) {
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void searchUserDocuments(userEmail)
+  }
+
   return (
     <Card className="search-panel" aria-labelledby="search-title">
       <CardHeader className="p-0">
@@ -29,12 +27,12 @@ export function SearchPanel({
         <p>Search uses OpenSearch fuzziness and returns text highlights from matching documents.</p>
       </CardHeader>
       <CardContent className="p-0">
-        <form className="search-form" onSubmit={onSearchSubmit}>
+        <form className="search-form" onSubmit={handleSearchSubmit}>
           <Input
             type="search"
             value={searchQuery}
             placeholder="Search contract terms, names, clauses..."
-            onChange={(event) => onSearchQueryChange(event.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
           <Button type="submit" disabled={isSearching}>
             {isSearching ? 'Searching...' : 'Search'}

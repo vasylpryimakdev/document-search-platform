@@ -1,22 +1,27 @@
 import { useEffect, useEffectEvent } from 'react'
 import { API_URL, type UserDocument } from '../api'
+import { useAuthStore } from '../stores/auth-store'
+import { useDocumentsStore } from '../stores/documents-store'
+import { useSearchStore } from '../stores/search-store'
 
-type UseDocumentEventsInput = {
-  userEmail: string
-  onDocumentChanged: (document: UserDocument) => void
-  onDocumentDeleted: (documentId: string) => void
-  onConnectionError: (message: string) => void
-}
+export function useDocumentEvents() {
+  const userEmail = useAuthStore((state) => state.userEmail)
+  const loadDocuments = useDocumentsStore((state) => state.loadDocuments)
+  const saveDocument = useDocumentsStore((state) => state.saveDocument)
+  const removeDocument = useDocumentsStore((state) => state.removeDocument)
+  const setDocumentsError = useDocumentsStore((state) => state.setDocumentsError)
+  const removeSearchResult = useSearchStore((state) => state.removeSearchResult)
 
-export function useDocumentEvents({
-  userEmail,
-  onDocumentChanged,
-  onDocumentDeleted,
-  onConnectionError,
-}: UseDocumentEventsInput) {
-  const handleDocumentChanged = useEffectEvent(onDocumentChanged)
-  const handleDocumentDeleted = useEffectEvent(onDocumentDeleted)
-  const handleConnectionError = useEffectEvent(onConnectionError)
+  const handleDocumentChanged = useEffectEvent(saveDocument)
+  const handleDocumentDeleted = useEffectEvent((documentId: string) => {
+    removeDocument(documentId)
+    removeSearchResult(documentId)
+  })
+  const handleConnectionError = useEffectEvent(setDocumentsError)
+
+  useEffect(() => {
+    void loadDocuments(userEmail)
+  }, [loadDocuments, userEmail])
 
   useEffect(() => {
     if (!userEmail) {

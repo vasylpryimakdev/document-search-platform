@@ -2,15 +2,19 @@ import type { FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useAuthStore } from '../stores/auth-store'
 
-type AuthCardProps = {
-  emailInput: string
-  error: string
-  onEmailInputChange: (value: string) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}
+export function AuthCard() {
+  const emailInput = useAuthStore((state) => state.emailInput)
+  const emailError = useAuthStore((state) => state.emailError)
+  const setEmailInput = useAuthStore((state) => state.setEmailInput)
+  const submitEmail = useAuthStore((state) => state.submitEmail)
 
-export function AuthCard({ emailInput, error, onEmailInputChange, onSubmit }: AuthCardProps) {
+  function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    submitEmail()
+  }
+
   return (
     <main className="auth-page">
       <Card className="auth-card" aria-labelledby="auth-title">
@@ -23,20 +27,20 @@ export function AuthCard({ emailInput, error, onEmailInputChange, onSubmit }: Au
         </CardHeader>
 
         <CardContent className="p-0">
-          <form className="auth-form" onSubmit={onSubmit} noValidate>
+          <form className="auth-form" onSubmit={handleEmailSubmit} noValidate>
             <label htmlFor="email">Email address</label>
             <Input
               id="email"
               type="email"
               value={emailInput}
               placeholder="you@example.com"
-              onChange={(event) => onEmailInputChange(event.target.value)}
-              aria-invalid={error ? 'true' : 'false'}
-              aria-describedby={error ? 'email-error' : undefined}
+              onChange={(event) => setEmailInput(event.target.value)}
+              aria-invalid={emailError ? 'true' : 'false'}
+              aria-describedby={emailError ? 'email-error' : undefined}
             />
-            {error ? (
+            {emailError ? (
               <p className="field-error" id="email-error">
-                {error}
+                {emailError}
               </p>
             ) : null}
             <Button type="submit">Continue</Button>

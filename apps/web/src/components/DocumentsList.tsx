@@ -1,22 +1,27 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { UserDocument } from '../api'
+import { useAuthStore } from '../stores/auth-store'
+import { useDocumentsStore } from '../stores/documents-store'
+import { useSearchStore } from '../stores/search-store'
 import { formatDate } from '../utils/format'
 
-type DocumentsListProps = {
-  documents: UserDocument[]
-  isLoadingDocuments: boolean
-  deletingDocumentId: string | null
-  onDeleteDocument: (documentId: string) => void
-}
+export function DocumentsList() {
+  const userEmail = useAuthStore((state) => state.userEmail)
+  const documents = useDocumentsStore((state) => state.documents)
+  const isLoadingDocuments = useDocumentsStore((state) => state.isLoadingDocuments)
+  const deletingDocumentId = useDocumentsStore((state) => state.deletingDocumentId)
+  const deleteUserDocument = useDocumentsStore((state) => state.deleteUserDocument)
+  const removeSearchResult = useSearchStore((state) => state.removeSearchResult)
 
-export function DocumentsList({
-  documents,
-  isLoadingDocuments,
-  deletingDocumentId,
-  onDeleteDocument,
-}: DocumentsListProps) {
+  async function handleDeleteDocument(documentId: string) {
+    const deleted = await deleteUserDocument(userEmail, documentId)
+
+    if (deleted) {
+      removeSearchResult(documentId)
+    }
+  }
+
   return (
     <section className="documents-list" aria-label="Uploaded documents">
       {isLoadingDocuments ? (
@@ -39,7 +44,7 @@ export function DocumentsList({
                 size="sm"
                 type="button"
                 disabled={deletingDocumentId === document.id}
-                onClick={() => onDeleteDocument(document.id)}
+                onClick={() => void handleDeleteDocument(document.id)}
               >
                 {deletingDocumentId === document.id ? 'Deleting...' : 'Delete'}
               </Button>
