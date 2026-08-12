@@ -146,7 +146,26 @@ async function processS3Object(bucket: string, key: string) {
       type: "document_status_updated",
       payload: { document: updatedDocument },
     });
+
+    if (isRetryableIndexingError(error)) {
+      throw error;
+    }
   }
+}
+
+function isRetryableIndexingError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return true;
+  }
+
+  return !isPermanentDocumentError(error);
+}
+
+function isPermanentDocumentError(error: Error) {
+  return (
+    error.message.startsWith("Uploaded file content does not match") ||
+    error.message.startsWith("Unsupported document extension")
+  );
 }
 
 function parseS3Records(body: string | undefined) {
