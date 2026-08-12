@@ -25,6 +25,10 @@ export function useDocumentEvents() {
   const handleConnectionError = useEffectEvent(() => {
     setDocumentsError("Live status connection lost. Reconnecting...");
   });
+  const handleConnectionRestored = useEffectEvent(() => {
+    setDocumentsError("");
+    void loadDocuments(userEmail);
+  });
 
   useEffect(() => {
     void loadDocuments(userEmail);
@@ -42,6 +46,8 @@ export function useDocumentEvents() {
     function connect() {
       const searchParams = new URLSearchParams({ userEmail });
       eventSource = new EventSource(`${API_URL}/events?${searchParams.toString()}`);
+
+      eventSource.addEventListener("connected", handleConnectionRestored);
 
       eventSource.addEventListener("document_created", (event) => {
         const { document } = JSON.parse(event.data) as { document: UserDocument };
