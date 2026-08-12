@@ -1,4 +1,10 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Readable } from "node:stream";
 
@@ -50,6 +56,19 @@ export async function deleteObjectIfExists(bucket: string, key: string) {
   } catch (error) {
     if (isS3NotFoundError(error)) {
       return;
+    }
+
+    throw error;
+  }
+}
+
+export async function objectExists(bucket: string, key: string) {
+  try {
+    await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return true;
+  } catch (error) {
+    if (isS3NotFoundError(error)) {
+      return false;
     }
 
     throw error;

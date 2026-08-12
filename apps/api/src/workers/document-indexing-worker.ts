@@ -8,7 +8,7 @@ import { sendUserEvent } from "../lib/events.js";
 import { parseDocument, validateDocumentSignature } from "../lib/document-parser.js";
 import { indexDocument } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
-import { getObjectBuffer } from "../lib/s3.js";
+import { getObjectBuffer, objectExists } from "../lib/s3.js";
 import { getRequiredEnv } from "../config/env.js";
 
 const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
@@ -87,6 +87,11 @@ async function processS3Object(bucket: string, key: string) {
   });
 
   if (!document) {
+    if (!(await objectExists(bucket, key))) {
+      console.warn(`Skipping deleted S3 object without matching document: ${bucket}/${key}`);
+      return;
+    }
+
     throw new MissingDocumentRecordError(bucket, key);
   }
 
