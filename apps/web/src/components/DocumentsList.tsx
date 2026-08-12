@@ -27,29 +27,32 @@ export function DocumentsList() {
     <section className="documents-list" aria-label="Uploaded documents">
       {isLoadingDocuments ? (
         <Card className="empty-state loading-state">
-          <Loader /> Loading documents
+          <Loader />
         </Card>
       ) : documents.length === 0 ? (
         <Card className="empty-state">No documents uploaded in this session yet.</Card>
       ) : (
         documents.map((document) => (
           <Card className="document-card" key={document.id}>
-            <div>
+            <div className="document-status-cell">
+              <Badge variant="secondary" className={`status-badge status-badge-${document.status.toLowerCase()}`}>
+                {document.status.toLowerCase()}
+              </Badge>
+            </div>
+            <div className="document-details">
               <h3>{document.userFilename}</h3>
               <p>{formatDate(document.uploadedAt)}</p>
             </div>
             <div className="document-actions">
-              <Badge variant="secondary" className="status-badge">
-                {document.status.toLowerCase()}
-              </Badge>
               <Button
                 variant="destructive"
                 size="sm"
+                className="loading-button loading-button-sm"
                 type="button"
                 disabled={deletingDocumentId === document.id}
                 onClick={() => void handleDeleteDocument(document.id)}
               >
-                {deletingDocumentId === document.id ? <><Loader /> Deleting</> : 'Delete'}
+                {deletingDocumentId === document.id ? <Loader /> : 'Delete'}
               </Button>
             </div>
           </Card>

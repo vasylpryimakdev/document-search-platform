@@ -42,8 +42,8 @@ export function SearchPanel() {
             placeholder="Search contract terms, names, clauses..."
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-          <Button type="submit" disabled={isSearching}>
-            {isSearching ? <><Loader /> Searching</> : 'Search'}
+          <Button className="loading-button" type="submit" disabled={isSearching}>
+            {isSearching ? <Loader /> : 'Search'}
           </Button>
         </form>
       </CardContent>

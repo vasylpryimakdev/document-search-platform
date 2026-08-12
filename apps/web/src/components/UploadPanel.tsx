@@ -35,8 +35,8 @@ export function UploadPanel() {
         accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         onChange={handleFileChange}
       />
-      <Button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
-        {isUploading ? <><Loader /> Uploading</> : 'Upload'}
+      <Button className="loading-button" type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
+        {isUploading ? <Loader /> : 'Upload'}
       </Button>
     </Card>
   )
