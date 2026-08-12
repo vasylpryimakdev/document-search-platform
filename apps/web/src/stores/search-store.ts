@@ -6,6 +6,7 @@ type SearchState = {
   searchResults: SearchResult[]
   searchError: string
   isSearching: boolean
+  hasSearched: boolean
   setSearchQuery: (searchQuery: string) => void
   searchUserDocuments: (userEmail: string) => Promise<void>
   removeSearchResult: (documentId: string) => void
@@ -17,16 +18,17 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   searchResults: [],
   searchError: '',
   isSearching: false,
+  hasSearched: false,
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   searchUserDocuments: async (userEmail) => {
     const query = get().searchQuery.trim()
 
     if (!query) {
-      set({ searchError: 'Enter text to search' })
+      set({ searchError: 'Enter text to search', hasSearched: false })
       return
     }
 
-    set({ isSearching: true, searchError: '' })
+    set({ isSearching: true, searchError: '', hasSearched: true })
 
     try {
       const response = await searchDocuments(userEmail, query)
@@ -41,5 +43,6 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     set((state) => ({
       searchResults: state.searchResults.filter((result) => result.documentId !== documentId),
     })),
-  resetSearch: () => set({ searchQuery: '', searchResults: [], searchError: '', isSearching: false }),
+  resetSearch: () =>
+    set({ searchQuery: '', searchResults: [], searchError: '', isSearching: false, hasSearched: false }),
 }))

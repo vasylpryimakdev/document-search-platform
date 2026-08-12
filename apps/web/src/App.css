@@ -186,6 +186,20 @@
   color: #b91c1c;
 }
 
+.search-hint,
+.search-empty {
+  margin: 14px 0 0;
+  color: #64748b;
+}
+
+.search-empty {
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
 .search-results {
   display: grid;
   gap: 12px;

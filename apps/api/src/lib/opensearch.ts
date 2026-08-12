@@ -46,6 +46,7 @@ type SearchHit = {
   _source?: SearchHitSource;
   highlight?: {
     content?: string[];
+    userFilename?: string[];
   };
 };
 
@@ -64,21 +65,13 @@ export async function searchDocuments({ userEmail, query }: SearchDocumentsInput
       query: {
         bool: {
           filter: [{ term: { userEmail } }],
-          must: [
-            {
-              match: {
-                content: {
-                  query,
-                  fuzziness: "AUTO",
-                },
-              },
-            },
-          ],
+          must: [{ multi_match: { query, fields: ["content", "userFilename^2"], fuzziness: "AUTO" } }],
         },
       },
       highlight: {
         fields: {
           content: {},
+          userFilename: {},
         },
       },
     },
@@ -90,7 +83,7 @@ export async function searchDocuments({ userEmail, query }: SearchDocumentsInput
     documentId: hit._source?.documentId ?? hit._id,
     userFilename: hit._source?.userFilename ?? "Unknown document",
     uploadedAt: hit._source?.uploadedAt ?? null,
-    highlights: hit.highlight?.content ?? [],
+    highlights: [...(hit.highlight?.userFilename ?? []), ...(hit.highlight?.content ?? [])],
   }));
 }
 
