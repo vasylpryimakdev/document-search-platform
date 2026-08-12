@@ -1,15 +1,15 @@
-import { AuthCard } from './components/AuthCard'
-import { DocumentsPage } from './components/DocumentsPage'
-import { useAuthStore } from './stores/auth-store'
+import { AuthCard } from "./components/AuthCard";
+import { DocumentsPage } from "./components/DocumentsPage";
+import { useAuthStore } from "./stores/auth-store";
 
 function App() {
-  const userEmail = useAuthStore((state) => state.userEmail)
+  const userEmail = useAuthStore((state) => state.userEmail);
 
   if (!userEmail) {
-    return <AuthCard />
+    return <AuthCard />;
   }
 
-  return <DocumentsPage />
+  return <DocumentsPage />;
 }
 
-export default App
+export default App;
