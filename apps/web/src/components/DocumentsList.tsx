@@ -56,7 +56,7 @@ export function DocumentsList() {
             <div className="flex self-stretch items-center border-r border-slate-400/20 pr-4 max-md:self-auto max-md:border-r-0 max-md:border-b max-md:pb-3 max-md:pr-0">
               <Badge
                 variant="secondary"
-                className={`w-fit uppercase tracking-[0.04em] ${document.status === "INDEXED" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}
+                className={`w-fit uppercase tracking-[0.04em] ${getStatusBadgeClassName(document.status)}`}
               >
                 {document.status.toLowerCase()}
               </Badge>
@@ -86,4 +86,16 @@ export function DocumentsList() {
       )}
     </section>
   );
+}
+
+function getStatusBadgeClassName(status: string) {
+  if (status === "INDEXED") {
+    return "bg-green-100 text-green-800";
+  }
+
+  if (status === "ERROR") {
+    return "bg-red-100 text-red-800";
+  }
+
+  return "bg-amber-100 text-amber-800";
 }
