@@ -1,0 +1,25 @@
+aws_region   = "us-east-1"
+project_name = "document-search-platform"
+environment  = "demo"
+
+frontend_origins = [
+  "http://localhost:5173",
+  "https://your-frontend-domain.vercel.app",
+]
+
+s3_document_prefix = "documents/"
+
+# Set true if Terraform should also create the EC2 host. If false, Terraform still
+# documents and creates the shared AWS resources: S3, SQS, IAM, and security group.
+create_ec2_instance = true
+ec2_ami_id          = ""
+ec2_instance_type   = "t3.small"
+ec2_subnet_id       = ""
+api_port            = 3001
+
+deployment_artifact_prefix = "deploy/"
+
+# Optional SNS topic ARNs for CloudWatch alarm notifications.
+alarm_actions = []
+
+allowed_http_cidr_blocks = ["0.0.0.0/0"]

@@ -3,3 +3,9 @@ dist/
 .env
 .DS_Store
 npm-debug.log*
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+tfplan*
+!*.tfvars.example

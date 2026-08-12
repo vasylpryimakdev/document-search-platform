@@ -1,0 +1,16 @@
+[Unit]
+Description=Document Search Platform API
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/document-search-platform/apps/api
+EnvironmentFile=/opt/document-search-platform/apps/api/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

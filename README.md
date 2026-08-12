@@ -59,6 +59,8 @@ SSE notifies React app per user
 apps/
   api/     Express API, Prisma, SQS worker
   web/     React Vite app
+infra/
+  aws/     Terraform AWS infrastructure specification
 docker-compose.yml
 ```
 
@@ -99,6 +101,7 @@ PORT=3001
 DATABASE_URL="postgresql://app:password@127.0.0.1:5433/document_search?schema=public"
 OPENSEARCH_URL="http://localhost:9200"
 OPENSEARCH_INDEX="documents"
+CORS_ALLOWED_ORIGINS="https://your-frontend-domain.vercel.app,http://localhost:5173"
 AWS_REGION="eu-central-1"
 AWS_ACCESS_KEY_ID=""
 AWS_SECRET_ACCESS_KEY=""
@@ -156,7 +159,31 @@ Open:
 http://localhost:5173
 ```
 
-## AWS Setup
+## AWS Infrastructure
+
+AWS resources are documented declaratively with Terraform in `infra/aws`.
+
+The Terraform configuration covers:
+
+- S3 bucket with public access blocked, server-side encryption, lifecycle cleanup, CORS, and object-created notifications for the `documents/` prefix.
+- SQS queue with long polling, server-side encryption, and a dead-letter queue.
+- Queue policy allowing only the S3 bucket to send events.
+- IAM role/profile for the EC2 API host with least-privilege S3/SQS access and SSM access.
+- API host security group exposing only HTTP `80` and HTTPS `443`.
+- Optional EC2 host with IMDSv2 and encrypted gp3 root volume.
+
+See `infra/aws/README.md` for usage.
+
+```bash
+cd infra/aws
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+```
+
+For the deployed frontend, set `VITE_API_URL` to the Terraform `api_host_https_url` output.
+
+## Manual AWS Setup
 
 Required AWS resources:
 
