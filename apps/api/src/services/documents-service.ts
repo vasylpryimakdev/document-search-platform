@@ -13,8 +13,19 @@ type CreateUploadInput = {
   size: number;
 };
 
-export function searchUserDocumentsByContent(userEmail: string, query: string) {
-  return searchDocuments({ userEmail, query });
+export async function searchUserDocumentsByContent(userEmail: string, query: string) {
+  const results = await searchDocuments({ userEmail, query });
+  const indexedDocuments = await prisma.document.findMany({
+    where: {
+      id: { in: results.map((result) => result.documentId) },
+      userEmail,
+      status: "INDEXED",
+    },
+    select: { id: true },
+  });
+  const indexedDocumentIds = new Set(indexedDocuments.map((document) => document.id));
+
+  return results.filter((result) => indexedDocumentIds.has(result.documentId));
 }
 
 export function listDocumentsByUser(userEmail: string) {
