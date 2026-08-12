@@ -22,7 +22,9 @@ export function useDocumentEvents() {
     removeDocument(documentId);
     removeSearchResult(documentId);
   });
-  const handleConnectionError = useEffectEvent(setDocumentsError);
+  const handleConnectionError = useEffectEvent(() => {
+    setDocumentsError("Live status connection lost. Reconnecting...");
+  });
 
   useEffect(() => {
     void loadDocuments(userEmail);
@@ -33,35 +35,49 @@ export function useDocumentEvents() {
       return;
     }
 
-    const searchParams = new URLSearchParams({ userEmail });
-    const eventSource = new EventSource(
-      `${API_URL}/events?${searchParams.toString()}`,
-    );
+    let eventSource: EventSource | null = null;
+    let reconnectTimeoutId: number | undefined;
+    let shouldReconnect = true;
 
-    eventSource.addEventListener("document_created", (event) => {
-      const { document } = JSON.parse(event.data) as { document: UserDocument };
-      handleDocumentChanged(document);
-    });
+    function connect() {
+      const searchParams = new URLSearchParams({ userEmail });
+      eventSource = new EventSource(`${API_URL}/events?${searchParams.toString()}`);
 
-    eventSource.addEventListener("document_status_updated", (event) => {
-      const { document } = JSON.parse(event.data) as { document: UserDocument };
-      handleDocumentChanged(document);
-    });
+      eventSource.addEventListener("document_created", (event) => {
+        const { document } = JSON.parse(event.data) as { document: UserDocument };
+        handleDocumentChanged(document);
+      });
 
-    eventSource.addEventListener("document_deleted", (event) => {
-      const { documentId } = JSON.parse(event.data) as { documentId: string };
-      handleDocumentDeleted(documentId);
-    });
+      eventSource.addEventListener("document_status_updated", (event) => {
+        const { document } = JSON.parse(event.data) as { document: UserDocument };
+        handleDocumentChanged(document);
+      });
 
-    eventSource.onerror = () => {
-      handleConnectionError(
-        "Live status connection failed. Refresh the page to reconnect.",
-      );
-      eventSource.close();
-    };
+      eventSource.addEventListener("document_deleted", (event) => {
+        const { documentId } = JSON.parse(event.data) as { documentId: string };
+        handleDocumentDeleted(documentId);
+      });
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+        handleConnectionError();
+
+        if (shouldReconnect) {
+          reconnectTimeoutId = window.setTimeout(connect, 3000);
+        }
+      };
+    }
+
+    connect();
 
     return () => {
-      eventSource.close();
+      shouldReconnect = false;
+      eventSource?.close();
+
+      if (reconnectTimeoutId) {
+        window.clearTimeout(reconnectTimeoutId);
+      }
     };
   }, [userEmail]);
 }
