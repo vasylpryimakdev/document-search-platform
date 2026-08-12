@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Loader } from '@/components/ui/loader'
 import { useAuthStore } from '../stores/auth-store'
 import { useDocumentsStore } from '../stores/documents-store'
 import { useSearchStore } from '../stores/search-store'
@@ -25,7 +26,9 @@ export function DocumentsList() {
   return (
     <section className="documents-list" aria-label="Uploaded documents">
       {isLoadingDocuments ? (
-        <Card className="empty-state">Loading documents...</Card>
+        <Card className="empty-state loading-state">
+          <Loader /> Loading documents
+        </Card>
       ) : documents.length === 0 ? (
         <Card className="empty-state">No documents uploaded in this session yet.</Card>
       ) : (
@@ -46,7 +49,7 @@ export function DocumentsList() {
                 disabled={deletingDocumentId === document.id}
                 onClick={() => void handleDeleteDocument(document.id)}
               >
-                {deletingDocumentId === document.id ? 'Deleting...' : 'Delete'}
+                {deletingDocumentId === document.id ? <><Loader /> Deleting</> : 'Delete'}
               </Button>
             </div>
           </Card>

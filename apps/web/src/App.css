@@ -263,6 +263,12 @@ mark {
   color: #cbd5e1;
 }
 
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .document-card {
   display: flex;
   align-items: center;

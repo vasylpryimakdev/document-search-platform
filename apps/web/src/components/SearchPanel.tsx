@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Loader } from '@/components/ui/loader'
 import { useAuthStore } from '../stores/auth-store'
 import { useDocumentsStore } from '../stores/documents-store'
 import { useSearchStore } from '../stores/search-store'
@@ -42,7 +43,7 @@ export function SearchPanel() {
             onChange={(event) => setSearchQuery(event.target.value)}
           />
           <Button type="submit" disabled={isSearching}>
-            {isSearching ? 'Searching...' : 'Search'}
+            {isSearching ? <><Loader /> Searching</> : 'Search'}
           </Button>
         </form>
       </CardContent>

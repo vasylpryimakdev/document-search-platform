@@ -1,6 +1,7 @@
 import { useRef, type ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Loader } from '@/components/ui/loader'
 import { useAuthStore } from '../stores/auth-store'
 import { useUploadStore } from '../stores/upload-store'
 
@@ -35,7 +36,7 @@ export function UploadPanel() {
         onChange={handleFileChange}
       />
       <Button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
-        {isUploading ? 'Uploading...' : 'Upload'}
+        {isUploading ? <><Loader /> Uploading</> : 'Upload'}
       </Button>
     </Card>
   )
