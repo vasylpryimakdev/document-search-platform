@@ -1,15 +1,15 @@
 import type { RequestHandler } from "express";
 import { addUserEventClient } from "../lib/events.js";
-import { isValidEmail } from "../utils/validation.js";
+import { getUserEmail } from "../utils/request.js";
 
 export const streamUserEvents: RequestHandler = (req, res) => {
-  const { userEmail } = req.query;
+  const userEmail = getUserEmail(req);
 
-  if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
-    return res.status(400).json({ message: "Valid userEmail is required" });
+  if ("error" in userEmail) {
+    return res.status(400).json({ message: userEmail.error });
   }
 
-  const removeClient = addUserEventClient(userEmail, res);
+  const removeClient = addUserEventClient(userEmail.value, res);
 
   req.on("close", removeClient);
 };

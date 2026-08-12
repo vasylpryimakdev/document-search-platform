@@ -1,11 +1,7 @@
 import cors from "cors";
+import { getCsvEnv } from "./env.js";
 
-export const allowedOrigins = new Set(
-  (process.env.CORS_ALLOWED_ORIGINS ?? "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
-);
+export const allowedOrigins = new Set(getCsvEnv("CORS_ALLOWED_ORIGINS"));
 
 export const corsMiddleware = cors({
   origin(origin, callback) {

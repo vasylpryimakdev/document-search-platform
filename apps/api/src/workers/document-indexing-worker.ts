@@ -9,6 +9,7 @@ import { parseDocument } from "../lib/document-parser.js";
 import { indexDocument } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
 import { getObjectBuffer } from "../lib/s3.js";
+import { getRequiredEnv } from "../config/env.js";
 
 const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
 
@@ -22,11 +23,7 @@ type S3EventMessage = {
 };
 
 export function startDocumentIndexingWorker() {
-  const queueUrl = process.env.SQS_QUEUE_URL;
-
-  if (!queueUrl) {
-    throw new Error("SQS_QUEUE_URL is required to start document indexing worker");
-  }
+  const queueUrl = getRequiredEnv("SQS_QUEUE_URL");
 
   let stopped = false;
 
@@ -66,15 +63,21 @@ async function processMessage(queueUrl: string, message: Message) {
     for (const record of records) {
       await processS3Object(record.bucket, record.key);
     }
-  } finally {
-    if (message.ReceiptHandle) {
-      await sqsClient.send(
-        new DeleteMessageCommand({
-          QueueUrl: queueUrl,
-          ReceiptHandle: message.ReceiptHandle,
-        }),
-      );
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      console.error("Skipping malformed SQS message", error);
+    } else {
+      throw error;
     }
+  }
+
+  if (message.ReceiptHandle) {
+    await sqsClient.send(
+      new DeleteMessageCommand({
+        QueueUrl: queueUrl,
+        ReceiptHandle: message.ReceiptHandle,
+      }),
+    );
   }
 }
 

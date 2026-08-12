@@ -5,7 +5,9 @@ import { sendUserEvent } from "../lib/events.js";
 import { deleteIndexedDocument, searchDocuments } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
 import { createUploadUrl, deleteObject } from "../lib/s3.js";
-import { isValidEmail } from "../utils/validation.js";
+import { getRequiredEnv } from "../config/env.js";
+import { getRequiredParam, getRequiredQueryString, getUserEmail } from "../utils/request.js";
+import { parseUserEmail } from "../utils/validation.js";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
@@ -16,19 +18,20 @@ const ALLOWED_CONTENT_TYPES = new Set([
 
 export const searchUserDocuments: RequestHandler = async (req, res, next) => {
   try {
-    const { userEmail, q } = req.query;
+    const userEmail = getUserEmail(req);
+    const query = getRequiredQueryString(req, "q");
 
-    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
-      return res.status(400).json({ message: "Valid userEmail is required" });
+    if ("error" in userEmail) {
+      return res.status(400).json({ message: userEmail.error });
     }
 
-    if (typeof q !== "string" || q.trim().length === 0) {
+    if ("error" in query) {
       return res.status(400).json({ message: "Search query is required" });
     }
 
     const results = await searchDocuments({
-      userEmail,
-      query: q.trim(),
+      userEmail: userEmail.value,
+      query: query.value,
     });
 
     return res.json({ results });
@@ -39,14 +42,14 @@ export const searchUserDocuments: RequestHandler = async (req, res, next) => {
 
 export const listUserDocuments: RequestHandler = async (req, res, next) => {
   try {
-    const { userEmail } = req.query;
+    const userEmail = getUserEmail(req);
 
-    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
-      return res.status(400).json({ message: "Valid userEmail is required" });
+    if ("error" in userEmail) {
+      return res.status(400).json({ message: userEmail.error });
     }
 
     const documents = await prisma.document.findMany({
-      where: { userEmail },
+      where: { userEmail: userEmail.value },
       orderBy: { uploadedAt: "desc" },
       select: {
         id: true,
@@ -65,21 +68,21 @@ export const listUserDocuments: RequestHandler = async (req, res, next) => {
 
 export const deleteUserDocument: RequestHandler = async (req, res, next) => {
   try {
-    const { userEmail } = req.query;
-    const { id: documentId } = req.params;
+    const userEmail = getUserEmail(req);
+    const documentId = getRequiredParam(req, "id");
 
-    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
-      return res.status(400).json({ message: "Valid userEmail is required" });
+    if ("error" in userEmail) {
+      return res.status(400).json({ message: userEmail.error });
     }
 
-    if (typeof documentId !== "string") {
+    if ("error" in documentId) {
       return res.status(400).json({ message: "Document id is required" });
     }
 
     const document = await prisma.document.findFirst({
       where: {
-        id: documentId,
-        userEmail,
+        id: documentId.value,
+        userEmail: userEmail.value,
       },
     });
 
@@ -91,7 +94,7 @@ export const deleteUserDocument: RequestHandler = async (req, res, next) => {
     await deleteIndexedDocument(document.id);
     await prisma.document.delete({ where: { id: document.id } });
 
-    sendUserEvent(userEmail, {
+    sendUserEvent(userEmail.value, {
       type: "document_deleted",
       payload: { documentId: document.id },
     });
@@ -111,8 +114,10 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
       size?: unknown;
     };
 
-    if (typeof userEmail !== "string" || !isValidEmail(userEmail)) {
-      return res.status(400).json({ message: "Valid userEmail is required" });
+    const validUserEmail = parseUserEmail(userEmail);
+
+    if ("error" in validUserEmail) {
+      return res.status(400).json({ message: validUserEmail.error });
     }
 
     if (typeof filename !== "string" || filename.trim().length === 0) {
@@ -137,19 +142,15 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
       return res.status(400).json({ message: "Only .pdf and .docx files are allowed" });
     }
 
-    const bucket = process.env.S3_BUCKET_NAME;
-
-    if (!bucket) {
-      return res.status(500).json({ message: "S3 bucket is not configured" });
-    }
+    const bucket = getRequiredEnv("S3_BUCKET_NAME");
 
     const documentId = randomUUID();
-    const s3Filename = `documents/${sanitizeEmailForS3(userEmail)}/${documentId}${extension}`;
+    const s3Filename = `documents/${sanitizeEmailForS3(validUserEmail.value)}/${documentId}${extension}`;
 
     const document = await prisma.document.create({
       data: {
         id: documentId,
-        userEmail,
+        userEmail: validUserEmail.value,
         userFilename: filename,
         s3Filename,
         s3Bucket: bucket,
@@ -171,7 +172,7 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
       contentType,
     });
 
-    sendUserEvent(userEmail, {
+    sendUserEvent(validUserEmail.value, {
       type: "document_created",
       payload: { document },
     });
