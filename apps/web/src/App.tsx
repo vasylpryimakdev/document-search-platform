@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { createUploadUrl, searchDocuments, uploadFileToS3, type SearchResult } from './api'
 import './App.css'
+import { Alert } from './components/ui/alert'
 import { AuthCard } from './components/AuthCard'
 import { DocumentsHeader } from './components/DocumentsHeader'
 import { DocumentsList } from './components/DocumentsList'
@@ -160,8 +161,8 @@ function App() {
       <DocumentsHeader userEmail={userEmail} onSignOut={handleSignOut} />
       <UploadPanel isUploading={isUploading} onFileChange={handleFileChange} />
 
-      {uploadError ? <p className="upload-error">{uploadError}</p> : null}
-      {documentsError ? <p className="upload-error">{documentsError}</p> : null}
+      {uploadError ? <Alert className="upload-error" variant="destructive">{uploadError}</Alert> : null}
+      {documentsError ? <Alert className="upload-error" variant="destructive">{documentsError}</Alert> : null}
 
       <SearchPanel
         searchQuery={searchQuery}

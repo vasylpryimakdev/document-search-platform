@@ -1,4 +1,7 @@
 import type { FormEvent } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import type { SearchResult } from '../api'
 import { renderHighlight } from '../utils/format'
 
@@ -20,22 +23,24 @@ export function SearchPanel({
   onSearchSubmit,
 }: SearchPanelProps) {
   return (
-    <section className="search-panel" aria-labelledby="search-title">
-      <div>
-        <h2 id="search-title">Search indexed documents</h2>
+    <Card className="search-panel" aria-labelledby="search-title">
+      <CardHeader className="p-0">
+        <CardTitle id="search-title">Search indexed documents</CardTitle>
         <p>Search uses OpenSearch fuzziness and returns text highlights from matching documents.</p>
-      </div>
-      <form className="search-form" onSubmit={onSearchSubmit}>
-        <input
-          type="search"
-          value={searchQuery}
-          placeholder="Search contract terms, names, clauses..."
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-        />
-        <button type="submit" disabled={isSearching}>
-          {isSearching ? 'Searching...' : 'Search'}
-        </button>
-      </form>
+      </CardHeader>
+      <CardContent className="p-0">
+        <form className="search-form" onSubmit={onSearchSubmit}>
+          <Input
+            type="search"
+            value={searchQuery}
+            placeholder="Search contract terms, names, clauses..."
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+          />
+          <Button type="submit" disabled={isSearching}>
+            {isSearching ? 'Searching...' : 'Search'}
+          </Button>
+        </form>
+      </CardContent>
       {searchError ? <p className="search-error">{searchError}</p> : null}
       {searchResults.length > 0 ? (
         <div className="search-results">
@@ -51,6 +56,6 @@ export function SearchPanel({
           ))}
         </div>
       ) : null}
-    </section>
+    </Card>
   )
 }

@@ -1,4 +1,6 @@
 import { useRef, type ChangeEvent } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 type UploadPanelProps = {
   isUploading: boolean
@@ -9,7 +11,7 @@ export function UploadPanel({ isUploading, onFileChange }: UploadPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   return (
-    <section className="documents-panel" aria-labelledby="documents-title">
+    <Card className="documents-panel" aria-labelledby="documents-title">
       <div>
         <h2 id="documents-title">Your documents</h2>
         <p>Upload one PDF or DOCX file under 10MB. New uploads appear as pending.</p>
@@ -21,9 +23,9 @@ export function UploadPanel({ isUploading, onFileChange }: UploadPanelProps) {
         accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         onChange={onFileChange}
       />
-      <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
+      <Button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
         {isUploading ? 'Uploading...' : 'Upload'}
-      </button>
-    </section>
+      </Button>
+    </Card>
   )
 }

@@ -1,3 +1,6 @@
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import type { UserDocument } from '../api'
 import { formatDate } from '../utils/format'
 
@@ -17,28 +20,31 @@ export function DocumentsList({
   return (
     <section className="documents-list" aria-label="Uploaded documents">
       {isLoadingDocuments ? (
-        <p className="empty-state">Loading documents...</p>
-      ) : documents.length === 0 ? (
-        <p className="empty-state">No documents uploaded in this session yet.</p>
-      ) : (
+          <Card className="empty-state">Loading documents...</Card>
+        ) : documents.length === 0 ? (
+          <Card className="empty-state">No documents uploaded in this session yet.</Card>
+        ) : (
         documents.map((document) => (
-          <article className="document-card" key={document.id}>
+          <Card className="document-card" key={document.id}>
             <div>
               <h3>{document.userFilename}</h3>
               <p>{formatDate(document.uploadedAt)}</p>
             </div>
             <div className="document-actions">
-              <span className="status-badge">{document.status.toLowerCase()}</span>
-              <button
-                className="danger-button"
+              <Badge variant="secondary" className="status-badge">
+                {document.status.toLowerCase()}
+              </Badge>
+              <Button
+                variant="destructive"
+                size="sm"
                 type="button"
                 disabled={deletingDocumentId === document.id}
                 onClick={() => onDeleteDocument(document.id)}
               >
                 {deletingDocumentId === document.id ? 'Deleting...' : 'Delete'}
-              </button>
+              </Button>
             </div>
-          </article>
+          </Card>
         ))
       )}
     </section>
