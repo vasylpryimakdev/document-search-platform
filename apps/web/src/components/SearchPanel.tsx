@@ -32,6 +32,7 @@ export function SearchPanel() {
   ).length;
   const showEmptySearchResults =
     hasSearched && !isSearching && !searchError && searchResults.length === 0;
+  const hasIndexedDocuments = indexedDocumentsCount > 0;
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,9 +63,10 @@ export function SearchPanel() {
             type="search"
             value={searchQuery}
             placeholder="Search contract terms, names, clauses..."
+            disabled={!hasIndexedDocuments}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-          <Button className="min-w-24" type="submit" disabled={isSearching}>
+          <Button className="min-w-24" type="submit" disabled={isSearching || !hasIndexedDocuments}>
             {isSearching ? <Loader /> : "Search"}
           </Button>
         </form>
