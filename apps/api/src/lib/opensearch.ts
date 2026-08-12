@@ -128,18 +128,37 @@ async function ensureDocumentsIndex() {
     return;
   }
 
-  await opensearchClient.indices.create({
-    index: indexName,
-    body: {
-      mappings: {
-        properties: {
-          documentId: { type: "keyword" },
-          userEmail: { type: "keyword" },
-          userFilename: { type: "text", fields: { keyword: { type: "keyword" } } },
-          content: { type: "text" },
-          uploadedAt: { type: "date" },
+  try {
+    await opensearchClient.indices.create({
+      index: indexName,
+      body: {
+        mappings: {
+          properties: {
+            documentId: { type: "keyword" },
+            userEmail: { type: "keyword" },
+            userFilename: { type: "text", fields: { keyword: { type: "keyword" } } },
+            content: { type: "text" },
+            uploadedAt: { type: "date" },
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (isOpenSearchResourceAlreadyExistsError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+function isOpenSearchResourceAlreadyExistsError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "statusCode" in error &&
+    (error as { body?: { error?: { type?: string } }; statusCode?: number }).statusCode === 400 &&
+    (error as { body?: { error?: { type?: string } } }).body?.error?.type ===
+      "resource_already_exists_exception"
+  );
 }
