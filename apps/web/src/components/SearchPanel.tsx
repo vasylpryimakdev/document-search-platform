@@ -66,7 +66,11 @@ export function SearchPanel() {
             disabled={!hasIndexedDocuments}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-          <Button className="min-w-24" type="submit" disabled={isSearching || !hasIndexedDocuments}>
+          <Button
+            className="min-w-24"
+            type="submit"
+            disabled={isSearching || !hasIndexedDocuments}
+          >
             {isSearching ? <Loader /> : "Search"}
           </Button>
         </form>
