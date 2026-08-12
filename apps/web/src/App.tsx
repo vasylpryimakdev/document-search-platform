@@ -1,5 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { createUploadUrl, searchDocuments, uploadFileToS3, type SearchResult } from './api'
+import { useEffect, type ChangeEvent, type FormEvent } from 'react'
 import './App.css'
 import { Alert } from './components/ui/alert'
 import { AuthCard } from './components/AuthCard'
@@ -8,31 +7,44 @@ import { DocumentsList } from './components/DocumentsList'
 import { SearchPanel } from './components/SearchPanel'
 import { UploadPanel } from './components/UploadPanel'
 import { useDocumentEvents } from './hooks/useDocumentEvents'
-import { useDocuments } from './hooks/useDocuments'
-import { USER_EMAIL_STORAGE_KEY, isValidEmail } from './utils/auth'
-import { validateFile } from './utils/documents'
+import { useAuthStore } from './stores/auth-store'
+import { useDocumentsStore } from './stores/documents-store'
+import { useSearchStore } from './stores/search-store'
+import { useUploadStore } from './stores/upload-store'
 
 function App() {
-  const [userEmail, setUserEmail] = useState(() => localStorage.getItem(USER_EMAIL_STORAGE_KEY) ?? '')
-  const [emailInput, setEmailInput] = useState(userEmail)
-  const [emailError, setEmailError] = useState('')
-  const [uploadError, setUploadError] = useState('')
-  const [isUploading, setIsUploading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [searchError, setSearchError] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const {
-    documents,
-    documentsError,
-    isLoadingDocuments,
-    deletingDocumentId,
-    setDocumentsError,
-    saveDocument,
-    removeDocument,
-    deleteUserDocument,
-    resetDocuments,
-  } = useDocuments(userEmail)
+  const userEmail = useAuthStore((state) => state.userEmail)
+  const emailInput = useAuthStore((state) => state.emailInput)
+  const emailError = useAuthStore((state) => state.emailError)
+  const setEmailInput = useAuthStore((state) => state.setEmailInput)
+  const submitEmail = useAuthStore((state) => state.submitEmail)
+  const signOut = useAuthStore((state) => state.signOut)
+  const uploadError = useUploadStore((state) => state.uploadError)
+  const isUploading = useUploadStore((state) => state.isUploading)
+  const uploadDocument = useUploadStore((state) => state.uploadDocument)
+  const resetUpload = useUploadStore((state) => state.resetUpload)
+  const documents = useDocumentsStore((state) => state.documents)
+  const documentsError = useDocumentsStore((state) => state.documentsError)
+  const isLoadingDocuments = useDocumentsStore((state) => state.isLoadingDocuments)
+  const deletingDocumentId = useDocumentsStore((state) => state.deletingDocumentId)
+  const setDocumentsError = useDocumentsStore((state) => state.setDocumentsError)
+  const saveDocument = useDocumentsStore((state) => state.saveDocument)
+  const removeDocument = useDocumentsStore((state) => state.removeDocument)
+  const resetDocuments = useDocumentsStore((state) => state.resetDocuments)
+  const loadDocuments = useDocumentsStore((state) => state.loadDocuments)
+  const deleteUserDocument = useDocumentsStore((state) => state.deleteUserDocument)
+  const searchQuery = useSearchStore((state) => state.searchQuery)
+  const searchResults = useSearchStore((state) => state.searchResults)
+  const searchError = useSearchStore((state) => state.searchError)
+  const isSearching = useSearchStore((state) => state.isSearching)
+  const setSearchQuery = useSearchStore((state) => state.setSearchQuery)
+  const searchUserDocuments = useSearchStore((state) => state.searchUserDocuments)
+  const removeSearchResult = useSearchStore((state) => state.removeSearchResult)
+  const resetSearch = useSearchStore((state) => state.resetSearch)
+
+  useEffect(() => {
+    void loadDocuments(userEmail)
+  }, [loadDocuments, userEmail])
 
   useDocumentEvents({
     userEmail,
@@ -43,28 +55,13 @@ function App() {
 
   function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
-    const normalizedEmail = emailInput.trim().toLowerCase()
-
-    if (!isValidEmail(normalizedEmail)) {
-      setEmailError('Enter a valid email address')
-      return
-    }
-
-    localStorage.setItem(USER_EMAIL_STORAGE_KEY, normalizedEmail)
-    setUserEmail(normalizedEmail)
-    setEmailError('')
+    submitEmail()
   }
 
   function handleSignOut() {
-    localStorage.removeItem(USER_EMAIL_STORAGE_KEY)
-    setUserEmail('')
-    setEmailInput('')
-    setEmailError('')
-    setUploadError('')
-    setSearchQuery('')
-    setSearchResults([])
-    setSearchError('')
+    signOut()
+    resetUpload()
+    resetSearch()
     resetDocuments()
   }
 
@@ -76,58 +73,17 @@ function App() {
       return
     }
 
-    const validationError = validateFile(file)
-
-    if (validationError) {
-      setUploadError(validationError)
-      return
-    }
-
-    setIsUploading(true)
-    setUploadError('')
-
-    try {
-      const { document, uploadUrl } = await createUploadUrl({
-        userEmail,
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      })
-
-      await uploadFileToS3(uploadUrl, file)
-      saveDocument(document)
-    } catch (uploadError) {
-      setUploadError(uploadError instanceof Error ? uploadError.message : 'Failed to upload file')
-    } finally {
-      setIsUploading(false)
-    }
+    await uploadDocument(userEmail, file)
   }
 
-  async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const query = searchQuery.trim()
-
-    if (!query) {
-      setSearchError('Enter text to search')
-      return
-    }
-
-    setIsSearching(true)
-    setSearchError('')
-
-    try {
-      const response = await searchDocuments(userEmail, query)
-      setSearchResults(response.results)
-    } catch (error) {
-      setSearchError(error instanceof Error ? error.message : 'Failed to search documents')
-    } finally {
-      setIsSearching(false)
-    }
+    void searchUserDocuments(userEmail)
   }
 
   async function handleDeleteDocument(documentId: string) {
-    const deleted = await deleteUserDocument(documentId)
+    const deleted = await deleteUserDocument(userEmail, documentId)
 
     if (deleted) {
       removeDocumentFromSearchResults(documentId)
@@ -140,9 +96,7 @@ function App() {
   }
 
   function removeDocumentFromSearchResults(documentId: string) {
-    setSearchResults((currentResults) =>
-      currentResults.filter((result) => result.documentId !== documentId),
-    )
+    removeSearchResult(documentId)
   }
 
   if (!userEmail) {
