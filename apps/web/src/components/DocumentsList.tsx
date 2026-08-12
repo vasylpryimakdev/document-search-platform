@@ -25,10 +25,10 @@ export function DocumentsList() {
   return (
     <section className="documents-list" aria-label="Uploaded documents">
       {isLoadingDocuments ? (
-          <Card className="empty-state">Loading documents...</Card>
-        ) : documents.length === 0 ? (
-          <Card className="empty-state">No documents uploaded in this session yet.</Card>
-        ) : (
+        <Card className="empty-state">Loading documents...</Card>
+      ) : documents.length === 0 ? (
+        <Card className="empty-state">No documents uploaded in this session yet.</Card>
+      ) : (
         documents.map((document) => (
           <Card className="document-card" key={document.id}>
             <div>
