@@ -110,6 +110,24 @@ terraform import aws_security_group.api <security-group-id>
 
 Importing every dependent resource is intentionally left explicit to avoid accidental replacement of live infrastructure.
 
+## Optional Remote State
+
+This test task keeps Terraform state local. For shared/team usage, create a dedicated S3 state bucket and DynamoDB lock table, then add a backend block such as:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "your-terraform-state-bucket"
+    key            = "document-search-platform/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "your-terraform-locks-table"
+    encrypt        = true
+  }
+}
+```
+
+Run `terraform init -migrate-state` after adding the backend.
+
 ## Test Task Trade-Offs
 
 This infrastructure is intentionally production-like without becoming a large platform setup:
