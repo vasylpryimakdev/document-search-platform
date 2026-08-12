@@ -87,8 +87,7 @@ async function processS3Object(bucket: string, key: string) {
   });
 
   if (!document) {
-    console.warn(`Skipping S3 object without matching document: ${bucket}/${key}`);
-    return;
+    throw new MissingDocumentRecordError(bucket, key);
   }
 
   try {
@@ -169,6 +168,13 @@ function parseS3Records(body: string | undefined) {
 
 function decodeS3ObjectKey(key: string) {
   return decodeURIComponent(key.replace(/\+/g, " "));
+}
+
+class MissingDocumentRecordError extends Error {
+  constructor(bucket: string, key: string) {
+    super(`S3 object has no matching document record yet: ${bucket}/${key}`);
+    this.name = "MissingDocumentRecordError";
+  }
 }
 
 function delay(ms: number) {
