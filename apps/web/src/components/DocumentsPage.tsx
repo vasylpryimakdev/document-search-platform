@@ -1,5 +1,6 @@
 import { Alert } from '@/components/ui/alert'
 import { useDocumentEvents } from '../hooks/useDocumentEvents'
+import { contentWidth, documentsBackground } from '../styles'
 import { useDocumentsStore } from '../stores/documents-store'
 import { useUploadStore } from '../stores/upload-store'
 import { DocumentsHeader } from './DocumentsHeader'
@@ -14,12 +15,12 @@ export function DocumentsPage() {
   useDocumentEvents()
 
   return (
-    <main className="documents-page">
+    <main className={documentsBackground}>
       <DocumentsHeader />
       <UploadPanel />
 
-      {uploadError ? <Alert className="upload-error" variant="destructive">{uploadError}</Alert> : null}
-      {documentsError ? <Alert className="upload-error" variant="destructive">{documentsError}</Alert> : null}
+      {uploadError ? <Alert className={`${contentWidth} mt-4 box-border`} variant="destructive">{uploadError}</Alert> : null}
+      {documentsError ? <Alert className={`${contentWidth} mt-4 box-border`} variant="destructive">{documentsError}</Alert> : null}
 
       <SearchPanel />
       <DocumentsList />

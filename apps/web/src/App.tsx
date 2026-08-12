@@ -1,4 +1,3 @@
-import './App.css'
 import { AuthCard } from './components/AuthCard'
 import { DocumentsPage } from './components/DocumentsPage'
 import { useAuthStore } from './stores/auth-store'

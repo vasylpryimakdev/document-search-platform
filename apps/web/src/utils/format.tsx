@@ -6,7 +6,7 @@ export function renderHighlight(highlight: string) {
 
     const isHighlighted = parts[index - 1] === '<em>' && parts[index + 1] === '</em>'
 
-    return isHighlighted ? <mark key={index}>{part}</mark> : part
+    return isHighlighted ? <mark className="rounded bg-sky-400 px-1 text-sky-950" key={index}>{part}</mark> : part
   })
 }
 
