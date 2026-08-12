@@ -65,7 +65,15 @@ export async function searchDocuments({ userEmail, query }: SearchDocumentsInput
       query: {
         bool: {
           filter: [{ term: { userEmail } }],
-          must: [{ multi_match: { query, fields: ["content", "userFilename^2"], fuzziness: "AUTO" } }],
+          must: [
+            {
+              multi_match: {
+                query,
+                fields: ["content", "userFilename^2"],
+                fuzziness: "AUTO",
+              },
+            },
+          ],
         },
       },
       highlight: {
@@ -83,7 +91,10 @@ export async function searchDocuments({ userEmail, query }: SearchDocumentsInput
     documentId: hit._source?.documentId ?? hit._id,
     userFilename: hit._source?.userFilename ?? "Unknown document",
     uploadedAt: hit._source?.uploadedAt ?? null,
-    highlights: [...(hit.highlight?.userFilename ?? []), ...(hit.highlight?.content ?? [])],
+    highlights: [
+      ...(hit.highlight?.userFilename ?? []),
+      ...(hit.highlight?.content ?? []),
+    ],
   }));
 }
 

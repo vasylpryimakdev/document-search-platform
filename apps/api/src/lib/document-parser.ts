@@ -35,5 +35,7 @@ export function validateDocumentSignature(buffer: Buffer, filename: string) {
     return;
   }
 
-  throw new Error(`Uploaded file content does not match ${extension} signature`);
+  throw new Error(
+    `Uploaded file content does not match ${extension} signature`,
+  );
 }

@@ -5,7 +5,10 @@ import {
   type Message,
 } from "@aws-sdk/client-sqs";
 import { sendUserEvent } from "../lib/events.js";
-import { parseDocument, validateDocumentSignature } from "../lib/document-parser.js";
+import {
+  parseDocument,
+  validateDocumentSignature,
+} from "../lib/document-parser.js";
 import { indexDocument } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
 import { getObjectBuffer, objectExists } from "../lib/s3.js";
@@ -88,7 +91,9 @@ async function processS3Object(bucket: string, key: string) {
 
   if (!document) {
     if (!(await objectExists(bucket, key))) {
-      console.warn(`Skipping deleted S3 object without matching document: ${bucket}/${key}`);
+      console.warn(
+        `Skipping deleted S3 object without matching document: ${bucket}/${key}`,
+      );
       return;
     }
 
@@ -130,7 +135,8 @@ async function processS3Object(bucket: string, key: string) {
       payload: { document: updatedDocument },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown indexing error";
+    const message =
+      error instanceof Error ? error.message : "Unknown indexing error";
     const updatedDocument = await prisma.document.update({
       where: { id: document.id },
       data: {

@@ -23,7 +23,9 @@ export async function searchUserDocumentsByContent(userEmail: string, query: str
     },
     select: { id: true },
   });
-  const indexedDocumentIds = new Set(indexedDocuments.map((document) => document.id));
+  const indexedDocumentIds = new Set(
+    indexedDocuments.map((document) => document.id),
+  );
 
   return results.filter((result) => indexedDocumentIds.has(result.documentId));
 }
@@ -69,7 +71,9 @@ export async function deleteDocumentForUser(userEmail: string, documentId: strin
 export async function createDocumentUpload(input: CreateUploadInput) {
   const bucket = getRequiredEnv("S3_BUCKET_NAME");
   const documentId = randomUUID();
-  const s3Filename = `documents/${sanitizeEmailForS3(input.userEmail)}/${documentId}${input.extension}`;
+  const s3Filename = `documents/${sanitizeEmailForS3(
+    input.userEmail,
+  )}/${documentId}${input.extension}`;
 
   const document = await prisma.document.create({
     data: {
