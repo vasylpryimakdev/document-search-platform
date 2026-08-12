@@ -1,8 +1,9 @@
 import { useEffect, useEffectEvent } from "react";
-import { API_URL, type UserDocument } from "../api";
+import { API_URL } from "../api";
 import { useAuthStore } from "../stores/auth-store";
 import { useDocumentsStore } from "../stores/documents-store";
 import { useSearchStore } from "../stores/search-store";
+import type { UserDocument } from "../types/documents";
 
 export function useDocumentEvents() {
   const userEmail = useAuthStore((state) => state.userEmail);

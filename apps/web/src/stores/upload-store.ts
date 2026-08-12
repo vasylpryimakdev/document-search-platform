@@ -1,14 +1,8 @@
 import { create } from "zustand";
 import { createUploadUrl, uploadFileToS3 } from "../api";
+import type { UploadState } from "../types/stores";
 import { validateFile } from "../utils/documents";
 import { useDocumentsStore } from "./documents-store";
-
-type UploadState = {
-  uploadError: string;
-  isUploading: boolean;
-  uploadDocument: (userEmail: string, file: File) => Promise<void>;
-  resetUpload: () => void;
-};
 
 export const useUploadStore = create<UploadState>((set) => ({
   uploadError: "",

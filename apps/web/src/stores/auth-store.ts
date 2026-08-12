@@ -1,14 +1,6 @@
 import { create } from "zustand";
+import type { AuthState } from "../types/stores";
 import { USER_EMAIL_STORAGE_KEY, isValidEmail } from "../utils/auth";
-
-type AuthState = {
-  userEmail: string;
-  emailInput: string;
-  emailError: string;
-  setEmailInput: (emailInput: string) => void;
-  submitEmail: () => boolean;
-  signOut: () => void;
-};
 
 const initialUserEmail = localStorage.getItem(USER_EMAIL_STORAGE_KEY) ?? "";
 

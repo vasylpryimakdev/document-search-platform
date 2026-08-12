@@ -1,17 +1,6 @@
 import { create } from "zustand";
-import { searchDocuments, type SearchResult } from "../api";
-
-type SearchState = {
-  searchQuery: string;
-  searchResults: SearchResult[];
-  searchError: string;
-  isSearching: boolean;
-  hasSearched: boolean;
-  setSearchQuery: (searchQuery: string) => void;
-  searchUserDocuments: (userEmail: string) => Promise<void>;
-  removeSearchResult: (documentId: string) => void;
-  resetSearch: () => void;
-};
+import { searchDocuments } from "../api";
+import type { SearchState } from "../types/stores";
 
 export const useSearchStore = create<SearchState>((set, get) => ({
   searchQuery: "",

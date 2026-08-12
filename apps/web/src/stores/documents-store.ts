@@ -1,22 +1,7 @@
 import { create } from "zustand";
-import { deleteDocument, listDocuments, type UserDocument } from "../api";
+import { deleteDocument, listDocuments } from "../api";
+import type { DocumentsState } from "../types/stores";
 import { upsertDocument } from "../utils/documents";
-
-type DocumentsState = {
-  documents: UserDocument[];
-  documentsError: string;
-  isLoadingDocuments: boolean;
-  deletingDocumentId: string | null;
-  loadDocuments: (userEmail: string) => Promise<void>;
-  setDocumentsError: (documentsError: string) => void;
-  saveDocument: (document: UserDocument) => void;
-  removeDocument: (documentId: string) => void;
-  deleteUserDocument: (
-    userEmail: string,
-    documentId: string,
-  ) => Promise<boolean>;
-  resetDocuments: () => void;
-};
 
 let documentsRequestId = 0;
 

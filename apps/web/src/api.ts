@@ -1,35 +1,11 @@
+import type {
+  CreateUploadUrlInput,
+  CreateUploadUrlResponse,
+  ListDocumentsResponse,
+  SearchDocumentsResponse,
+} from "./types/api";
+
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
-export type DocumentStatus = "PENDING" | "INDEXED" | "ERROR";
-
-export type UserDocument = {
-  id: string;
-  userFilename: string;
-  s3Filename?: string;
-  status: DocumentStatus;
-  uploadedAt: string;
-  indexedAt?: string | null;
-};
-
-type CreateUploadUrlResponse = {
-  document: UserDocument;
-  uploadUrl: string;
-};
-
-type ListDocumentsResponse = {
-  documents: UserDocument[];
-};
-
-export type SearchResult = {
-  documentId: string;
-  userFilename: string;
-  uploadedAt: string | null;
-  highlights: string[];
-};
-
-type SearchDocumentsResponse = {
-  results: SearchResult[];
-};
 
 export async function listDocuments(userEmail: string) {
   const searchParams = new URLSearchParams({ userEmail });
@@ -44,12 +20,7 @@ export async function listDocuments(userEmail: string) {
   return response.json() as Promise<ListDocumentsResponse>;
 }
 
-export async function createUploadUrl(input: {
-  userEmail: string;
-  filename: string;
-  contentType: string;
-  size: number;
-}) {
+export async function createUploadUrl(input: CreateUploadUrlInput) {
   const response = await fetch(`${API_URL}/documents/upload-url`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

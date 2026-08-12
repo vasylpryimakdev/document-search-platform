@@ -1,4 +1,4 @@
-import type { UserDocument } from "../api";
+import type { UserDocument } from "../types/documents";
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
