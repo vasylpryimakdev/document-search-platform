@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
-import { FileText, Trash2 } from "lucide-react";
+import { Download, FileText, Trash2 } from "lucide-react";
+import { createDownloadUrl } from "../api";
 import { contentWidth, glassCard } from "../styles";
 import { useAuthStore } from "../stores/auth-store";
 import { useDocumentsStore } from "../stores/documents-store";
@@ -10,6 +12,7 @@ import { useSearchStore } from "../stores/search-store";
 import { formatDate, renderHighlight } from "../utils/format";
 
 export function DocumentsList() {
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
   const userEmail = useAuthStore((state) => state.userEmail);
   const documents = useDocumentsStore((state) => state.documents);
   const isLoadingDocuments = useDocumentsStore(
@@ -37,6 +40,23 @@ export function DocumentsList() {
     }
   }
 
+  async function handleDownloadDocument(documentId: string) {
+    setDownloadingDocumentId(documentId);
+
+    try {
+      const { downloadUrl } = await createDownloadUrl(userEmail, documentId);
+      window.location.assign(downloadUrl);
+    } catch (error) {
+      useDocumentsStore
+        .getState()
+        .setDocumentsError(
+          error instanceof Error ? error.message : "Failed to download document",
+        );
+    } finally {
+      setDownloadingDocumentId(null);
+    }
+  }
+
   return (
     <section
       className={`${contentWidth} mt-5 grid gap-3`}
@@ -53,7 +73,7 @@ export function DocumentsList() {
           No documents uploaded in this session yet.
         </Card>
       ) : (
-        <Card className={`${glassCard} overflow-hidden rounded-[24px] p-0`}>
+        <Card className={`${glassCard} overflow-hidden rounded-3xl p-0`}>
           <div className="grid grid-cols-[minmax(220px,1.2fr)_130px_190px_minmax(280px,1fr)_96px] items-center gap-5 border-b border-slate-400/20 bg-slate-900/80 px-5 py-3.5 text-sm font-semibold text-slate-300 max-lg:hidden">
             <span>Document</span>
             <span>Status</span>
@@ -116,7 +136,22 @@ export function DocumentsList() {
                     )}
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-sky-300 hover:bg-sky-500/10 hover:text-sky-200"
+                      type="button"
+                      aria-label={`Download ${document.userFilename}`}
+                      disabled={downloadingDocumentId === document.id}
+                      onClick={() => void handleDownloadDocument(document.id)}
+                    >
+                      {downloadingDocumentId === document.id ? (
+                        <Loader />
+                      ) : (
+                        <Download size={17} aria-hidden="true" />
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"

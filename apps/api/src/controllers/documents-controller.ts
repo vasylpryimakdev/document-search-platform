@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { RequestHandler } from "express";
 import {
+  createDocumentDownloadUrl,
   createDocumentUpload,
   deleteDocumentForUser,
   listDocumentsByUser,
@@ -73,6 +74,31 @@ export const deleteUserDocument: RequestHandler = async (req, res, next) => {
     }
 
     return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const createUserDocumentDownloadUrl: RequestHandler = async (req, res, next) => {
+  try {
+    const userEmail = getUserEmail(req);
+    const documentId = getRequiredParam(req, "id");
+
+    if ("error" in userEmail) {
+      return res.status(400).json({ message: userEmail.error });
+    }
+
+    if ("error" in documentId) {
+      return res.status(400).json({ message: "Document id is required" });
+    }
+
+    const downloadUrl = await createDocumentDownloadUrl(userEmail.value, documentId.value);
+
+    if (!downloadUrl) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    return res.json({ downloadUrl });
   } catch (error) {
     return next(error);
   }

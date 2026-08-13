@@ -1,6 +1,7 @@
 import type {
   CreateUploadUrlInput,
   CreateUploadUrlResponse,
+  CreateDownloadUrlResponse,
   ListDocumentsResponse,
   SearchDocumentsResponse,
 } from "./types/api";
@@ -59,6 +60,19 @@ export async function deleteDocument(userEmail: string, documentId: string) {
   if (!response.ok) {
     throw new Error(await getErrorMessage(response));
   }
+}
+
+export async function createDownloadUrl(userEmail: string, documentId: string) {
+  const searchParams = new URLSearchParams({ userEmail });
+  const response = await fetch(
+    `${API_URL}/documents/${documentId}/download-url?${searchParams.toString()}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json() as Promise<CreateDownloadUrlResponse>;
 }
 
 export async function uploadFileToS3(uploadUrl: string, file: File) {

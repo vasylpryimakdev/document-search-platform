@@ -16,11 +16,27 @@ type CreateUploadUrlInput = {
   contentType: string;
 };
 
+type CreateDownloadUrlInput = {
+  bucket: string;
+  key: string;
+  filename: string;
+};
+
 export function createUploadUrl({ bucket, key, contentType }: CreateUploadUrlInput) {
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
     ContentType: contentType,
+  });
+
+  return getSignedUrl(s3Client, command, { expiresIn: 300 });
+}
+
+export function createDownloadUrl({ bucket, key, filename }: CreateDownloadUrlInput) {
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${filename.replaceAll('"', "'")}"`,
   });
 
   return getSignedUrl(s3Client, command, { expiresIn: 300 });

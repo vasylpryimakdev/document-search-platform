@@ -19,3 +19,7 @@ export type ListDocumentsResponse = {
 export type SearchDocumentsResponse = {
   results: SearchResult[];
 };
+
+export type CreateDownloadUrlResponse = {
+  downloadUrl: string;
+};

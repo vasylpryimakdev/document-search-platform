@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sendUserEvent } from "../lib/events.js";
 import { deleteIndexedDocument, searchDocuments } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
-import { createUploadUrl, deleteObjectIfExists } from "../lib/s3.js";
+import { createDownloadUrl, createUploadUrl, deleteObjectIfExists } from "../lib/s3.js";
 import { getRequiredEnv } from "../config/env.js";
 
 type CreateUploadInput = {
@@ -66,6 +66,30 @@ export async function deleteDocumentForUser(userEmail: string, documentId: strin
   });
 
   return true;
+}
+
+export async function createDocumentDownloadUrl(userEmail: string, documentId: string) {
+  const document = await prisma.document.findFirst({
+    where: {
+      id: documentId,
+      userEmail,
+    },
+    select: {
+      s3Bucket: true,
+      s3Filename: true,
+      userFilename: true,
+    },
+  });
+
+  if (!document) {
+    return null;
+  }
+
+  return createDownloadUrl({
+    bucket: document.s3Bucket,
+    key: document.s3Filename,
+    filename: document.userFilename,
+  });
 }
 
 export async function createDocumentUpload(input: CreateUploadInput) {
