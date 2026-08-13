@@ -2,11 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
+import { FileText, Trash2 } from "lucide-react";
 import { contentWidth, glassCard } from "../styles";
 import { useAuthStore } from "../stores/auth-store";
 import { useDocumentsStore } from "../stores/documents-store";
 import { useSearchStore } from "../stores/search-store";
-import { formatDate } from "../utils/format";
+import { formatDate, renderHighlight } from "../utils/format";
 
 export function DocumentsList() {
   const userEmail = useAuthStore((state) => state.userEmail);
@@ -22,6 +23,10 @@ export function DocumentsList() {
   );
   const removeSearchResult = useSearchStore(
     (state) => state.removeSearchResult,
+  );
+  const searchResults = useSearchStore((state) => state.searchResults);
+  const searchResultsByDocumentId = new Map(
+    searchResults.map((result) => [result.documentId, result]),
   );
 
   async function handleDeleteDocument(documentId: string) {
@@ -48,41 +53,91 @@ export function DocumentsList() {
           No documents uploaded in this session yet.
         </Card>
       ) : (
-        documents.map((document) => (
-          <Card
-            className={`${glassCard} grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-[20px] p-4.5 max-md:grid-cols-1`}
-            key={document.id}
-          >
-            <div className="flex self-stretch items-center border-r border-slate-400/20 pr-4 max-md:self-auto max-md:border-r-0 max-md:border-b max-md:pb-3 max-md:pr-0">
-              <Badge
-                variant="secondary"
-                className={`w-fit uppercase tracking-[0.04em] ${getStatusBadgeClassName(document.status)}`}
-              >
-                {document.status.toLowerCase()}
-              </Badge>
-            </div>
-            <div className="grid gap-2">
-              <h3 className="m-0 text-lg font-semibold">
-                {document.userFilename}
-              </h3>
-              <p className="m-0 text-sm text-slate-300">
-                {formatDate(document.uploadedAt)}
-              </p>
-            </div>
-            <div className="flex items-center gap-2.5 max-md:flex-col max-md:items-stretch">
-              <Button
-                variant="destructive"
-                size="sm"
-                className="min-w-18"
-                type="button"
-                disabled={deletingDocumentId === document.id}
-                onClick={() => void handleDeleteDocument(document.id)}
-              >
-                {deletingDocumentId === document.id ? <Loader /> : "Delete"}
-              </Button>
-            </div>
-          </Card>
-        ))
+        <Card className={`${glassCard} overflow-hidden rounded-[24px] p-0`}>
+          <div className="grid grid-cols-[minmax(220px,1.2fr)_130px_190px_minmax(280px,1fr)_96px] items-center gap-5 border-b border-slate-400/20 bg-slate-900/80 px-5 py-3.5 text-sm font-semibold text-slate-300 max-lg:hidden">
+            <span>Document</span>
+            <span>Status</span>
+            <span>Upload Date</span>
+            <span>Content Preview</span>
+            <span className="text-right">Actions</span>
+          </div>
+          <div className="divide-y divide-slate-400/12">
+            {documents.map((document) => {
+              const searchResult = searchResultsByDocumentId.get(document.id);
+              const preview = searchResult?.highlights[0];
+
+              return (
+                <article
+                  className="grid grid-cols-[minmax(220px,1.2fr)_130px_190px_minmax(280px,1fr)_96px] items-center gap-5 px-5 py-4 transition-colors hover:bg-slate-800/45 max-lg:grid-cols-1 max-lg:gap-3"
+                  key={document.id}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-sky-300/20 bg-sky-400/10 text-sky-300">
+                      <FileText size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="m-0 truncate text-base font-semibold text-slate-50">
+                        {document.userFilename}
+                      </h3>
+                      <p className="mt-1 truncate font-mono text-xs text-slate-400">
+                        ID: {document.id}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="max-lg:flex max-lg:items-center max-lg:justify-between">
+                    <span className="hidden text-sm font-semibold text-slate-400 max-lg:block">
+                      Status
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className={`w-fit uppercase tracking-[0.04em] ${getStatusBadgeClassName(document.status)}`}
+                    >
+                      {document.status.toLowerCase()}
+                    </Badge>
+                  </div>
+
+                  <div className="text-sm text-slate-200 max-lg:flex max-lg:items-center max-lg:justify-between">
+                    <span className="hidden font-semibold text-slate-400 max-lg:block">
+                      Upload Date
+                    </span>
+                    <span>{formatDate(document.uploadedAt)}</span>
+                  </div>
+
+                  <div className="min-w-0 text-sm leading-6 text-slate-300 max-lg:border-t max-lg:border-slate-400/12 max-lg:pt-3">
+                    {preview ? (
+                      <p className="m-0 line-clamp-2">
+                        {renderHighlight(preview)}
+                      </p>
+                    ) : (
+                      <p className="m-0 text-slate-500">
+                        Search this document to show matching text preview.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-300 hover:bg-red-500/10 hover:text-red-200"
+                      type="button"
+                      aria-label={`Delete ${document.userFilename}`}
+                      disabled={deletingDocumentId === document.id}
+                      onClick={() => void handleDeleteDocument(document.id)}
+                    >
+                      {deletingDocumentId === document.id ? (
+                        <Loader />
+                      ) : (
+                        <Trash2 size={17} aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </Card>
       )}
     </section>
   );

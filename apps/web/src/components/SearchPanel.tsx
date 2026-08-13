@@ -7,7 +7,6 @@ import { contentWidth, glassCard } from "../styles";
 import { useAuthStore } from "../stores/auth-store";
 import { useDocumentsStore } from "../stores/documents-store";
 import { useSearchStore } from "../stores/search-store";
-import { renderHighlight } from "../utils/format";
 
 export function SearchPanel() {
   const userEmail = useAuthStore((state) => state.userEmail);
@@ -55,17 +54,22 @@ export function SearchPanel() {
       </CardHeader>
       <CardContent className="p-0">
         <form
-          className="mt-4.5 flex gap-3 max-md:flex-col max-md:items-stretch"
+          className="mt-4.5 grid grid-cols-[1fr_auto_auto] items-start gap-3 max-md:grid-cols-1 max-md:items-stretch"
           onSubmit={handleSearchSubmit}
         >
-          <Input
-            className="min-w-0 flex-1 border-slate-400/40 bg-slate-950/70 text-slate-50"
-            type="search"
-            value={searchQuery}
-            placeholder="Search contract terms, names, clauses..."
-            disabled={!hasIndexedDocuments}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
+          <div>
+            <Input
+              className="min-w-0 border-slate-400/40 bg-slate-950/70 text-slate-50"
+              type="search"
+              value={searchQuery}
+              placeholder="Search contract terms, names, clauses..."
+              disabled={!hasIndexedDocuments}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+            <p className="mt-2 text-sm text-slate-400">
+              Press Enter to search indexed documents.
+            </p>
+          </div>
           <Button
             className="min-w-24"
             type="submit"
@@ -73,6 +77,13 @@ export function SearchPanel() {
           >
             {isSearching ? <Loader /> : "Search"}
           </Button>
+          <div className="rounded-2xl border border-slate-400/20 bg-slate-900/70 px-5 py-3 text-center shadow-inner max-md:text-left">
+            <p className="m-0 text-xs text-slate-400">Showing</p>
+            <p className="m-0 text-2xl font-bold text-sky-300">{documents.length}</p>
+            <p className="m-0 text-xs text-slate-400">
+              document{documents.length === 1 ? "" : "s"}
+            </p>
+          </div>
         </form>
       </CardContent>
       {pendingDocumentsCount > 0 ? (
@@ -101,28 +112,6 @@ export function SearchPanel() {
           No indexed matches found. Try words from the document text or
           filename.
         </p>
-      ) : null}
-      {searchResults.length > 0 ? (
-        <div className="mt-4.5 grid gap-3">
-          {searchResults.map((result) => (
-            <article
-              className={`${glassCard} rounded-[18px] p-4 shadow-none`}
-              key={result.documentId}
-            >
-              <h3 className="mb-2.5 font-semibold">{result.userFilename}</h3>
-              <div className="grid gap-2">
-                {result.highlights.map((highlight, index) => (
-                  <p
-                    className="m-0 text-slate-300"
-                    key={`${result.documentId}-${index}`}
-                  >
-                    {renderHighlight(highlight)}
-                  </p>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
       ) : null}
     </Card>
   );
