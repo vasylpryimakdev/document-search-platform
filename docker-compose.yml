@@ -39,6 +39,21 @@ services:
     depends_on:
       - opensearch
 
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: document-search-localstack
+    restart: unless-stopped
+    environment:
+      SERVICES: s3,sqs
+      AWS_DEFAULT_REGION: us-east-1
+      DEBUG: "0"
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./infra/localstack/init:/etc/localstack/init/ready.d:ro
+
 volumes:
   postgres_data:
   opensearch_data:
+  localstack_data:

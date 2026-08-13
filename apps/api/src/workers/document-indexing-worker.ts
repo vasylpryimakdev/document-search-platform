@@ -14,7 +14,10 @@ import { prisma } from "../lib/prisma.js";
 import { getObjectBuffer, objectExists } from "../lib/s3.js";
 import { getRequiredEnv } from "../config/env.js";
 
-const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
+const sqsClient = new SQSClient({
+  region: process.env.AWS_REGION,
+  endpoint: process.env.AWS_ENDPOINT_URL,
+});
 
 type S3EventMessage = {
   Records?: Array<{

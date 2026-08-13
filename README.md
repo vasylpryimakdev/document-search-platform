@@ -66,7 +66,7 @@ docker-compose.yml
 
 ## Local Services
 
-Docker Compose runs local PostgreSQL and OpenSearch:
+Docker Compose runs local PostgreSQL, OpenSearch, and LocalStack for S3/SQS:
 
 ```bash
 docker compose up -d
@@ -90,11 +90,26 @@ OpenSearch Dashboards:
 http://localhost:5601
 ```
 
+LocalStack S3/SQS:
+
+```text
+http://localhost:4566
+```
+
+The LocalStack init script creates:
+
+- S3 bucket: `document-search-local`
+- SQS queue: `document-events`
+- S3 object-created notifications for the `documents/` prefix
+
 ## Environment Variables
 
-Backend variables are documented in `apps/api/.env.example`.
+Backend variables are documented in:
 
-Create `apps/api/.env` from `apps/api/.env.example`:
+- `apps/api/.env.development.example` for local Docker/LocalStack
+- `apps/api/.env.production.example` for AWS deployment
+
+For local development, create `apps/api/.env.development` from `apps/api/.env.development.example`:
 
 ```env
 PORT=3001
@@ -102,17 +117,24 @@ DATABASE_URL="postgresql://app:password@127.0.0.1:5433/document_search?schema=pu
 OPENSEARCH_URL="http://localhost:9200"
 OPENSEARCH_INDEX="documents"
 CORS_ALLOWED_ORIGINS="https://your-frontend-domain.vercel.app,http://localhost:5173"
-AWS_REGION="eu-central-1"
-AWS_ACCESS_KEY_ID=""
-AWS_SECRET_ACCESS_KEY=""
-S3_BUCKET_NAME=""
-SQS_QUEUE_URL=""
-WORKER_ENABLED="false"
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="test"
+AWS_SECRET_ACCESS_KEY="test"
+AWS_ENDPOINT_URL="http://localhost:4566"
+AWS_S3_FORCE_PATH_STYLE="true"
+S3_BUCKET_NAME="document-search-local"
+SQS_QUEUE_URL="http://localhost:4566/000000000000/document-events"
+WORKER_ENABLED="true"
 ```
 
-Frontend variables are documented in `apps/web/.env.example`.
+The backend loads `.env.development` by default. To load another file, set `APP_ENV` or `NODE_ENV`, for example `APP_ENV=production` loads `apps/api/.env.production`. Values from regular environment variables can still be used in production, so EC2 does not need committed env files.
 
-Create `apps/web/.env` from `apps/web/.env.example`:
+Frontend variables are documented in:
+
+- `apps/web/.env.development.example`
+- `apps/web/.env.production.example`
+
+Vite automatically loads `apps/web/.env.development` for `npm run dev` and `apps/web/.env.production` for `npm run build`. For local development, create `apps/web/.env.development` from `apps/web/.env.development.example`:
 
 ```env
 VITE_API_URL="http://localhost:3001"
@@ -133,17 +155,28 @@ API health check:
 http://localhost:3001/health
 ```
 
-To run the SQS worker in the same local backend process, set:
+For local Docker-based testing, keep the SQS worker enabled:
 
 ```env
 WORKER_ENABLED="true"
 ```
 
-Then start the API again:
+Then start the API:
 
 ```bash
 npm run dev
 ```
+
+With this local setup you can test the full flow without real AWS resources:
+
+- upload a PDF/DOCX through the browser
+- store it in LocalStack S3
+- receive the S3 event through LocalStack SQS
+- parse and index it into local OpenSearch
+- see live status updates through SSE
+- search indexed content with highlights
+- download the original file through a pre-signed LocalStack S3 URL
+- delete the document from PostgreSQL, OpenSearch, and LocalStack S3
 
 ## Frontend Setup
 

@@ -8,7 +8,12 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Readable } from "node:stream";
 
-export const s3Client = new S3Client({ region: process.env.AWS_REGION });
+export const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  endpoint: process.env.AWS_ENDPOINT_URL,
+  forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === "true",
+  requestChecksumCalculation: "WHEN_REQUIRED",
+});
 
 type CreateUploadUrlInput = {
   bucket: string;
