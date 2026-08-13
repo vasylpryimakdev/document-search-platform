@@ -104,12 +104,20 @@ The LocalStack init script creates:
 
 ## Environment Variables
 
-Backend variables are documented in:
+Backend env files:
 
-- `apps/api/.env.development.example` for local Docker/LocalStack
-- `apps/api/.env.production.example` for AWS deployment
+- `apps/api/.env.development` is used by `npm run dev` and should point to local Docker/LocalStack.
+- `apps/api/.env` is used by Prisma CLI locally, for example `npx prisma migrate dev`.
+- On EC2, systemd uses `/opt/document-search-platform/apps/api/.env`; this file is created on the server and is not committed.
 
-For local development, create `apps/api/.env.development` from `apps/api/.env.development.example`:
+Create local backend env files from examples:
+
+```bash
+cp apps/api/.env.development.example apps/api/.env.development
+cp apps/api/.env.example apps/api/.env
+```
+
+Local Docker/LocalStack values:
 
 ```env
 PORT=3001
@@ -127,14 +135,16 @@ SQS_QUEUE_URL="http://localhost:4566/000000000000/document-events"
 WORKER_ENABLED="true"
 ```
 
-The backend loads `.env.development` by default. To load another file, set `APP_ENV` or `NODE_ENV`, for example `APP_ENV=production` loads `apps/api/.env.production`. Values from regular environment variables can still be used in production, so EC2 does not need committed env files.
+The backend loads `.env.development` by default. To load another file, set `APP_ENV` or `NODE_ENV`; for example, `APP_ENV=production` loads `apps/api/.env.production`. Values from regular environment variables still work, and production values are kept on EC2 in `/opt/document-search-platform/apps/api/.env`.
+
+Production backend env must not include LocalStack-only variables such as `AWS_ENDPOINT_URL` or `AWS_S3_FORCE_PATH_STYLE`.
 
 Frontend variables are documented in:
 
 - `apps/web/.env.development.example`
 - `apps/web/.env.production.example`
 
-Vite automatically loads `apps/web/.env.development` for `npm run dev` and `apps/web/.env.production` for `npm run build`. For local development, create `apps/web/.env.development` from `apps/web/.env.development.example`:
+Vite automatically loads `apps/web/.env.development` for `npm run dev`. For production, set `VITE_API_URL` in Vercel environment variables instead of committing a real `.env.production` file. For local development, create `apps/web/.env.development` from `apps/web/.env.development.example`:
 
 ```env
 VITE_API_URL="http://localhost:3001"
