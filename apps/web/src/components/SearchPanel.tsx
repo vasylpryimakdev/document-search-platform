@@ -43,14 +43,25 @@ export function SearchPanel() {
       className={`${contentWidth} ${glassCard} mt-5 box-border rounded-3xl p-6`}
       aria-labelledby="search-title"
     >
-      <CardHeader className="p-0">
-        <CardTitle className="text-2xl" id="search-title">
-          Search indexed documents
-        </CardTitle>
-        <p className="mt-1.5 text-slate-300">
-          Search uses OpenSearch fuzziness and returns text highlights from
-          matching documents.
-        </p>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 p-0 max-md:flex-col">
+        <div>
+          <CardTitle className="text-2xl" id="search-title">
+            Search indexed documents
+          </CardTitle>
+          <p className="mt-1.5 text-slate-300">
+            Search uses OpenSearch fuzziness and returns text highlights from
+            matching documents.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-400/20 bg-slate-900/70 px-5 py-3 text-center shadow-inner max-md:text-left">
+          <p className="m-0 text-xs text-slate-400">Showing</p>
+          <p className="m-0 text-2xl font-bold text-sky-300">
+            {documents.length}
+          </p>
+          <p className="m-0 text-xs text-slate-400">
+            document{documents.length === 1 ? "" : "s"}
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <form
@@ -77,13 +88,6 @@ export function SearchPanel() {
           >
             {isSearching ? <Loader /> : "Search"}
           </Button>
-          <div className="rounded-2xl border border-slate-400/20 bg-slate-900/70 px-5 py-3 text-center shadow-inner max-md:text-left">
-            <p className="m-0 text-xs text-slate-400">Showing</p>
-            <p className="m-0 text-2xl font-bold text-sky-300">{documents.length}</p>
-            <p className="m-0 text-xs text-slate-400">
-              document{documents.length === 1 ? "" : "s"}
-            </p>
-          </div>
         </form>
       </CardContent>
       {pendingDocumentsCount > 0 ? (
