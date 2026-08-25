@@ -11,7 +11,7 @@ import {
 } from "../lib/document-parser.js";
 import { deleteIndexedDocument, indexDocument } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
-import { getObjectBuffer, objectExists } from "../lib/s3.js";
+import { getObjectBuffer, getObjectSize, objectExists } from "../lib/s3.js";
 import { getRequiredEnv } from "../config/env.js";
 
 const sqsClient = new SQSClient({
@@ -114,6 +114,14 @@ async function processS3Object(bucket: string, key: string) {
   }
 
   try {
+    const actualSize = await getObjectSize(bucket, key);
+
+    if (actualSize !== document.size) {
+      throw new Error(
+        `Uploaded file size does not match declared size: expected ${document.size}, got ${actualSize}`,
+      );
+    }
+
     const file = await getObjectBuffer(bucket, key);
     validateDocumentSignature(file, document.userFilename);
 
@@ -215,7 +223,8 @@ function isRetryableIndexingError(error: unknown) {
 function isPermanentDocumentError(error: Error) {
   return (
     error.message.startsWith("Uploaded file content does not match") ||
-    error.message.startsWith("Unsupported document extension")
+    error.message.startsWith("Unsupported document extension") ||
+    error.message.startsWith("Uploaded file size does not match")
   );
 }
 

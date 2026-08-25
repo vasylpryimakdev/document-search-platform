@@ -62,6 +62,21 @@ export async function getObjectBuffer(bucket: string, key: string) {
   return streamToBuffer(response.Body as Readable);
 }
 
+export async function getObjectSize(bucket: string, key: string) {
+  const response = await s3Client.send(
+    new HeadObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    }),
+  );
+
+  if (response.ContentLength === undefined) {
+    throw new Error(`S3 object ${key} has no content length`);
+  }
+
+  return response.ContentLength;
+}
+
 export async function deleteObject(bucket: string, key: string) {
   await s3Client.send(
     new DeleteObjectCommand({
