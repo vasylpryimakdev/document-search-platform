@@ -29,6 +29,10 @@ export function SearchPanel() {
   const errorDocumentsCount = documents.filter(
     (document) => document.status === "ERROR",
   ).length;
+  const hasActiveSearch = hasSearched && !searchError;
+  const visibleDocumentsCount = hasActiveSearch
+    ? searchResults.length
+    : documents.length;
   const showEmptySearchResults =
     hasSearched && !isSearching && !searchError && searchResults.length === 0;
   const hasIndexedDocuments = indexedDocumentsCount > 0;
@@ -56,10 +60,10 @@ export function SearchPanel() {
         <div className="rounded-2xl border border-slate-400/20 bg-slate-900/70 px-5 py-3 text-center shadow-inner max-md:text-left">
           <p className="m-0 text-xs text-slate-400">Showing</p>
           <p className="m-0 text-2xl font-bold text-sky-300">
-            {documents.length}
+            {visibleDocumentsCount}
           </p>
           <p className="m-0 text-xs text-slate-400">
-            document{documents.length === 1 ? "" : "s"}
+            document{visibleDocumentsCount === 1 ? "" : "s"}
           </p>
         </div>
       </CardHeader>

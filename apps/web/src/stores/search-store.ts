@@ -13,11 +13,20 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     const query = get().searchQuery.trim();
 
     if (!query) {
-      set({ searchError: "Enter text to search", hasSearched: false });
+      set({
+        searchError: "Enter text to search",
+        searchResults: [],
+        hasSearched: false,
+      });
       return;
     }
 
-    set({ isSearching: true, searchError: "", hasSearched: true });
+    set({
+      isSearching: true,
+      searchError: "",
+      searchResults: [],
+      hasSearched: true,
+    });
 
     try {
       const response = await searchDocuments(userEmail, query);

@@ -28,9 +28,15 @@ export function DocumentsList() {
     (state) => state.removeSearchResult,
   );
   const searchResults = useSearchStore((state) => state.searchResults);
+  const searchError = useSearchStore((state) => state.searchError);
+  const hasSearched = useSearchStore((state) => state.hasSearched);
   const searchResultsByDocumentId = new Map(
     searchResults.map((result) => [result.documentId, result]),
   );
+  const hasActiveSearch = hasSearched && !searchError;
+  const visibleDocuments = hasActiveSearch
+    ? documents.filter((document) => searchResultsByDocumentId.has(document.id))
+    : documents;
 
   async function handleDeleteDocument(documentId: string) {
     const deleted = await deleteUserDocument(userEmail, documentId);
@@ -68,9 +74,11 @@ export function DocumentsList() {
         >
           <Loader />
         </Card>
-      ) : documents.length === 0 ? (
+      ) : visibleDocuments.length === 0 ? (
         <Card className={`${glassCard} rounded-[20px] p-6 text-slate-300`}>
-          No documents uploaded in this session yet.
+          {hasActiveSearch
+            ? "No matching documents found."
+            : "No documents uploaded in this session yet."}
         </Card>
       ) : (
         <Card className={`${glassCard} overflow-hidden rounded-3xl p-0`}>
@@ -82,7 +90,7 @@ export function DocumentsList() {
             <span className="text-right">Actions</span>
           </div>
           <div className="divide-y divide-slate-400/12">
-            {documents.map((document) => {
+            {visibleDocuments.map((document) => {
               const searchResult = searchResultsByDocumentId.get(document.id);
               const preview = searchResult?.highlights[0];
 
