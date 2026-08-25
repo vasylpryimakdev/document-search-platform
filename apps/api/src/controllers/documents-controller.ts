@@ -11,10 +11,12 @@ import { getRequiredParam, getRequiredQueryString, getUserEmail } from "../utils
 import { parseUserEmail } from "../utils/validation.js";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx"]);
-const ALLOWED_CONTENT_TYPES = new Set([
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+const CONTENT_TYPES_BY_EXTENSION = new Map([
+  [".pdf", "application/pdf"],
+  [
+    ".docx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ],
 ]);
 
 export const searchUserDocuments: RequestHandler = async (req, res, next) => {
@@ -123,10 +125,6 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
       return res.status(400).json({ message: "Filename is required" });
     }
 
-    if (typeof contentType !== "string" || !ALLOWED_CONTENT_TYPES.has(contentType)) {
-      return res.status(400).json({ message: "Only PDF and DOCX files are allowed" });
-    }
-
     if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
       return res.status(400).json({ message: "Valid file size is required" });
     }
@@ -136,9 +134,12 @@ export const createDocumentUploadUrl: RequestHandler = async (req, res, next) =>
     }
 
     const extension = path.extname(filename).toLowerCase();
+    const expectedContentType = CONTENT_TYPES_BY_EXTENSION.get(extension);
 
-    if (!ALLOWED_EXTENSIONS.has(extension)) {
-      return res.status(400).json({ message: "Only .pdf and .docx files are allowed" });
+    if (typeof contentType !== "string" || contentType !== expectedContentType) {
+      return res.status(400).json({
+        message: "File extension and content type must match a supported PDF or DOCX file",
+      });
     }
 
     const { document, uploadUrl } = await createDocumentUpload({
