@@ -8,9 +8,15 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: document_search
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d document_search"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   opensearch:
     image: opensearchproject/opensearch:2.15.0
@@ -22,10 +28,16 @@ services:
       OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
       OPENSEARCH_INITIAL_ADMIN_PASSWORD: "R9!vK2#pL8@zQ5xT7nY"
     ports:
-      - "9200:9200"
-      - "9600:9600"
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9600:9600"
     volumes:
       - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.15.0
@@ -35,9 +47,16 @@ services:
       OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
     ports:
-      - "5601:5601"
+      - "127.0.0.1:5601:5601"
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5601/api/status >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   localstack:
     image: localstack/localstack:3.8
@@ -48,10 +67,16 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       DEBUG: "0"
     ports:
-      - "4566:4566"
+      - "127.0.0.1:4566:4566"
     volumes:
       - localstack_data:/var/lib/localstack
       - ./infra/localstack/init:/etc/localstack/init/ready.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   postgres_data:
