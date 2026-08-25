@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { createUploadUrl, uploadFileToS3 } from "../api";
+import { createUploadUrl, deleteDocument, uploadFileToS3 } from "../api";
 import type { UploadState } from "../types/stores";
 import { validateFile } from "../utils/documents";
 import { useDocumentsStore } from "./documents-store";
@@ -25,7 +25,18 @@ export const useUploadStore = create<UploadState>((set) => ({
         size: file.size,
       });
 
-      await uploadFileToS3(uploadUrl, file);
+      try {
+        await uploadFileToS3(uploadUrl, file);
+      } catch (error) {
+        try {
+          await deleteDocument(userEmail, document.id);
+        } catch (cleanupError) {
+          console.error("Failed to clean up document after S3 upload failure", cleanupError);
+        }
+
+        throw error;
+      }
+
       useDocumentsStore.getState().saveDocument(document);
     } catch (error) {
       set({
