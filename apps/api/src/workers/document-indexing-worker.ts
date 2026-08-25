@@ -9,7 +9,7 @@ import {
   parseDocument,
   validateDocumentSignature,
 } from "../lib/document-parser.js";
-import { indexDocument } from "../lib/opensearch.js";
+import { deleteIndexedDocument, indexDocument } from "../lib/opensearch.js";
 import { prisma } from "../lib/prisma.js";
 import { getObjectBuffer, objectExists } from "../lib/s3.js";
 import { getRequiredEnv } from "../config/env.js";
@@ -103,6 +103,16 @@ async function processS3Object(bucket: string, key: string) {
     throw new MissingDocumentRecordError(bucket, key);
   }
 
+  const documentStillExists = await prisma.document.findUnique({
+    where: { id: document.id },
+    select: { id: true },
+  });
+
+  if (!documentStillExists) {
+    await deleteIndexedDocument(document.id);
+    return;
+  }
+
   try {
     const file = await getObjectBuffer(bucket, key);
     validateDocumentSignature(file, document.userFilename);
@@ -117,13 +127,22 @@ async function processS3Object(bucket: string, key: string) {
       uploadedAt: document.uploadedAt,
     });
 
-    const updatedDocument = await prisma.document.update({
+    const updateResult = await prisma.document.updateMany({
       where: { id: document.id },
       data: {
         status: "INDEXED",
         indexedAt: new Date(),
         errorMessage: null,
       },
+    });
+
+    if (updateResult.count === 0) {
+      await deleteIndexedDocument(document.id);
+      return;
+    }
+
+    const updatedDocument = await prisma.document.findUnique({
+      where: { id: document.id },
       select: {
         id: true,
         userFilename: true,
@@ -133,6 +152,11 @@ async function processS3Object(bucket: string, key: string) {
       },
     });
 
+    if (!updatedDocument) {
+      await deleteIndexedDocument(document.id);
+      return;
+    }
+
     sendUserEvent(document.userEmail, {
       type: "document_status_updated",
       payload: { document: updatedDocument },
@@ -140,12 +164,21 @@ async function processS3Object(bucket: string, key: string) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown indexing error";
-    const updatedDocument = await prisma.document.update({
+    const updateResult = await prisma.document.updateMany({
       where: { id: document.id },
       data: {
         status: "ERROR",
         errorMessage: message,
       },
+    });
+
+    if (updateResult.count === 0) {
+      await deleteIndexedDocument(document.id);
+      return;
+    }
+
+    const updatedDocument = await prisma.document.findUnique({
+      where: { id: document.id },
       select: {
         id: true,
         userFilename: true,
@@ -155,6 +188,10 @@ async function processS3Object(bucket: string, key: string) {
         errorMessage: true,
       },
     });
+
+    if (!updatedDocument) {
+      return;
+    }
 
     sendUserEvent(document.userEmail, {
       type: "document_status_updated",

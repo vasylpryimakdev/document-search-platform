@@ -56,14 +56,15 @@ export async function deleteDocumentForUser(userEmail: string, documentId: strin
     return false;
   }
 
-  await deleteObjectIfExists(document.s3Bucket, document.s3Filename);
-  await deleteIndexedDocument(document.id);
   await prisma.document.delete({ where: { id: document.id } });
 
   sendUserEvent(userEmail, {
     type: "document_deleted",
     payload: { documentId: document.id },
   });
+
+  await deleteObjectIfExists(document.s3Bucket, document.s3Filename);
+  await deleteIndexedDocument(document.id);
 
   return true;
 }
