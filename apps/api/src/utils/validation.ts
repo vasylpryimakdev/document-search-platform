@@ -3,9 +3,15 @@ export function isValidEmail(email: string) {
 }
 
 export function parseUserEmail(value: unknown) {
-  if (typeof value !== "string" || !isValidEmail(value)) {
+  if (typeof value !== "string") {
     return { error: "Valid userEmail is required" } as const;
   }
 
-  return { value } as const;
+  const normalizedEmail = value.trim().toLowerCase();
+
+  if (!isValidEmail(normalizedEmail)) {
+    return { error: "Valid userEmail is required" } as const;
+  }
+
+  return { value: normalizedEmail } as const;
 }

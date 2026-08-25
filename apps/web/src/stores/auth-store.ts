@@ -10,7 +10,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   emailError: "",
   setEmailInput: (emailInput) => set({ emailInput }),
   submitEmail: () => {
-    const normalizedEmail = get().emailInput.trim().toLowerCase();
+    const normalizedEmail = get().emailInput.trim();
 
     if (!isValidEmail(normalizedEmail)) {
       set({ emailError: "Enter a valid email address" });
