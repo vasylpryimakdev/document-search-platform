@@ -109,12 +109,19 @@ export function DocumentsList() {
                     <span className="hidden text-sm font-semibold text-slate-400 max-lg:block">
                       Status
                     </span>
-                    <Badge
-                      variant="secondary"
-                      className={`w-fit uppercase tracking-[0.04em] ${getStatusBadgeClassName(document.status)}`}
-                    >
-                      {document.status.toLowerCase()}
-                    </Badge>
+                    <div className="min-w-0">
+                      <Badge
+                        variant="secondary"
+                        className={`w-fit uppercase tracking-[0.04em] ${getStatusBadgeClassName(document.status)}`}
+                      >
+                        {document.status.toLowerCase()}
+                      </Badge>
+                      {document.status === "ERROR" && document.errorMessage ? (
+                        <p className="mt-1 max-w-52 wrap-break-word text-xs leading-4 text-red-300">
+                          {document.errorMessage}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="text-sm text-slate-200 max-lg:flex max-lg:items-center max-lg:justify-between">

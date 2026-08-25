@@ -38,6 +38,7 @@ export function listDocumentsByUser(userEmail: string) {
       id: true,
       userFilename: true,
       status: true,
+      errorMessage: true,
       uploadedAt: true,
       indexedAt: true,
     },

@@ -5,6 +5,7 @@ export type UserDocument = {
   userFilename: string;
   s3Filename?: string;
   status: DocumentStatus;
+  errorMessage?: string | null;
   uploadedAt: string;
   indexedAt?: string | null;
 };
